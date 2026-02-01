@@ -11,11 +11,11 @@ export async function GET(req: Request) {
 
   try {
     const res = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|vi`
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=vi&dt=t&q=${encodeURIComponent(word)}`
     );
 
     const data = await res.json();
-    const meaning = data.responseData?.translatedText || "";
+    const meaning = data[0][0][0] || "";
 
     return NextResponse.json({ meaning });
   } catch (error) {

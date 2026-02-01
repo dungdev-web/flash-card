@@ -139,68 +139,54 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
             </Button>
           </motion.div>
         </motion.div>
-        {/* Example */}
 
         {/* FRONT */}
-        <Card className="absolute inset-0 flex flex-col items-center justify-center gap-4 backface-hidden shadow-2xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950 border-2 border-blue-100 dark:border-blue-900 rounded-2xl overflow-hidden">
+        <Card className="absolute inset-0 flex flex-col items-center justify-center backface-hidden shadow-2xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950 border-2 border-blue-100 dark:border-blue-900 rounded-2xl overflow-hidden">
           {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 dark:bg-blue-800 rounded-full blur-3xl opacity-20 -mr-16 -mt-16" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200 dark:bg-purple-800 rounded-full blur-3xl opacity-20 -ml-12 -mb-12" />
 
+          {/* CONTENT */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-center z-10"
+            transition={{ delay: 0.2 }}
+            className="z-10 flex flex-col items-center gap-2"
           >
-            <motion.h2
-              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-2"
-              animate={{
-                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-              style={{ backgroundSize: "200% 200%" }}
-            >
+            {/* WORD */}
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
               {word.english}
-            </motion.h2>
+            </h2>
 
-            {/* Sound button */}
-            <motion.button
-              className="mt-2 p-2 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                speak(word.english);
-              }}
-            >
-              <Volume2 className="w-4 h-4 text-blue-500" />
-            </motion.button>
-          </motion.div>
+            {/* PHONETIC + SOUND */}
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              {word.phonetic && (
+                <span className="text-sm italic">/{word.phonetic}/</span>
+              )}
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-          >
-            <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 text-sm font-semibold shadow-lg">
+              <motion.button
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  speak(word.english);
+                }}
+                className="p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              >
+                <Volume2 className="w-4 h-4 text-blue-500" />
+              </motion.button>
+            </div>
+
+            {/* TOPIC */}
+            <Badge className="mt-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 text-xs font-semibold shadow">
               {word.topic}
             </Badge>
           </motion.div>
 
-          {/* Hint text */}
-          <motion.p
-            className="text-xs text-gray-400 mt-4 absolute bottom-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            transition={{ delay: 0.6 }}
-          >
+          {/* HINT */}
+          <p className="absolute bottom-4 text-xs text-gray-400">
             Click to reveal meaning ✨
-          </motion.p>
+          </p>
         </Card>
 
         {/* BACK */}
@@ -213,7 +199,7 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
           <div className="absolute bottom-0 right-0 w-24 h-24 bg-pink-200 dark:bg-pink-800 rounded-full blur-3xl opacity-20 -mr-12 -mb-12" />
 
           <motion.div
-            className="px-6 text-center z-10"
+            className="px-8 leading-1.5 text-center z-10"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{
               opacity: flip ? 1 : 0,

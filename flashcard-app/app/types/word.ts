@@ -7,6 +7,8 @@ export interface Word {
   learned: boolean;
   userId: string;
   isPreset: boolean;
+  phonetic?: string; // IPA
+  audioUrl?: string;
   createdAt: number;
 }
 export interface WordInput {
@@ -15,5 +17,7 @@ export interface WordInput {
   topic: string;
   example: string;
   learned?: boolean;
+  phonetic?: string;
+  audioUrl?: string;
   isPreset: boolean; // ⭐ từ vựng hệ thống
 }
