@@ -21,9 +21,11 @@ import {
   Wand2,
   FileText,
   Lightbulb,
+  MessageSquare, // 🆕 Icon cho phrase
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AuthGuard from "@/components/auth/AuthGuard";
+
 const TOPICS = [
   { value: "Daily", emoji: "☀️", color: "from-orange-400 to-yellow-400" },
   { value: "Work", emoji: "💼", color: "from-blue-400 to-cyan-400" },
@@ -32,6 +34,11 @@ const TOPICS = [
   { value: "Tech", emoji: "💻", color: "from-purple-400 to-violet-400" },
   { value: "Health", emoji: "🏥", color: "from-teal-400 to-cyan-400" },
 ];
+
+interface MeaningData {
+  partOfSpeech: string;
+  definitions: Array<{ definition: string }>;
+}
 
 export default function AddWordPage() {
   const { user } = useAuth();
@@ -48,14 +55,29 @@ export default function AddWordPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [topic, setTopic] = useState("Daily");
-
+  
+  const [availableParts, setAvailableParts] = useState<MeaningData[]>([]);
+  const [selectedPartIndex, setSelectedPartIndex] = useState(0);
+  
+  // 🆕 Thêm state để phân loại word/phrase
+  const [wordType, setWordType] = useState<"word" | "phrase">("word");
+  
   const debouncedEnglish = useDebounce(english, 500);
+
+  // 🆕 Kiểm tra xem là word hay phrase
+  useEffect(() => {
+    if (english.trim().includes(" ")) {
+      setWordType("phrase");
+    } else {
+      setWordType("word");
+    }
+  }, [english]);
 
   // Fetch meaning
   useEffect(() => {
     if (!debouncedEnglish || debouncedEnglish.length < 2) {
       setMeaning("");
-      return; // ❌ bỏ setExample("")
+      return;
     }
 
     const fetchMeaning = async () => {
@@ -87,26 +109,27 @@ export default function AddWordPage() {
       .split("")
       .map((char) => {
         switch (char) {
-          case "a":
-            return "æ";
-          case "e":
-            return "ɛ";
-          case "i":
-            return "ɪ";
-          case "o":
-            return "ɒ";
-          case "u":
-            return "ʌ";
-          case "y":
-            return "aɪ";
-          default:
-            return char;
+          case "a": return "æ";
+          case "e": return "ɛ";
+          case "i": return "ɪ";
+          case "o": return "ɒ";
+          case "u": return "ʌ";
+          case "y": return "aɪ";
+          default: return char;
         }
       })
       .join("");
   };
+
+  // Fetch transcription (chỉ cho word, không cho phrase)
   useEffect(() => {
-    if (!english) return;
+    // 🆕 Chỉ fetch transcription nếu là word đơn
+    if (!english || wordType === "phrase") {
+      setTranscription("");
+      setAudioUrl("");
+      setAvailableParts([]);
+      return;
+    }
 
     const fetchTranscription = async () => {
       try {
@@ -115,21 +138,33 @@ export default function AddWordPage() {
         );
         const data = await res.json();
         setAudioUrl(data.audioUrl || "");
-        // API có phiên âm → dùng
+
         if (data.phonetic) {
           setTranscription(data.phonetic);
         } else {
-          // fallback nếu API không có
           setTranscription(simpleTranscription(english));
         }
+
+        if (data.meanings && data.meanings.length > 0) {
+          setAvailableParts(data.meanings);
+          setSelectedPartIndex(0);
+        } else {
+          setAvailableParts([]);
+        }
       } catch (error) {
-        // lỗi network → fallback
         setTranscription(simpleTranscription(english));
+        setAvailableParts([]);
       }
     };
 
     fetchTranscription();
-  }, [english]);
+  }, [english, wordType]);
+
+  const currentPartOfSpeech = wordType === "phrase" 
+    ? "phrase" // 🆕 Nếu là phrase, partOfSpeech = "phrase"
+    : (availableParts[selectedPartIndex]?.partOfSpeech || "");
+  
+  const currentDefinition = availableParts[selectedPartIndex]?.definitions[0]?.definition || meaning;
 
   // Generate example sentence
   const generateExample = async () => {
@@ -140,11 +175,14 @@ export default function AddWordPage() {
       const res = await fetch("/api/generate-example", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word: english, meaning, topic }),
+        body: JSON.stringify({ 
+          word: english, 
+          meaning: currentDefinition,
+          partOfSpeech: currentPartOfSpeech,
+          topic 
+        }),
       });
       const data = await res.json();
-      console.log("🔥 example from API:", data.example); // 👈 THÊM DÒNG NÀY
-
       setExample(data.example || "");
     } catch {
       setExample("");
@@ -175,6 +213,7 @@ export default function AddWordPage() {
         audioUrl: audioUrl || "",
         phonetic: transcription || "",
         createdAt: Date.now(),
+        partOfSpeech: currentPartOfSpeech, // 🆕 Lưu "phrase" nếu là cụm từ
       });
 
       setSuccess(true);
@@ -200,7 +239,6 @@ export default function AddWordPage() {
           className="w-full max-w-2xl"
         >
           <Card className="relative overflow-hidden bg-linear-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950 border-2 border-blue-100 dark:border-blue-900 shadow-2xl">
-            {/* Decorative Background */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl -mr-32 -mt-32" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-linear-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl -ml-24 -mb-24" />
 
@@ -217,7 +255,7 @@ export default function AddWordPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Add New Word
+                    Add New {wordType === "phrase" ? "Phrase" : "Word"}
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Expand your vocabulary journey
@@ -233,12 +271,21 @@ export default function AddWordPage() {
                 className="space-y-2"
               >
                 <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Globe className="w-4 h-4" />
-                  English Word
+                  {wordType === "phrase" ? (
+                    <>
+                      <MessageSquare className="w-4 h-4" />
+                      English Phrase
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-4 h-4" />
+                      English Word
+                    </>
+                  )}
                 </label>
                 <div className="relative">
                   <Input
-                    placeholder="Enter a word..."
+                    placeholder={wordType === "phrase" ? "Enter a phrase..." : "Enter a word..."}
                     value={english}
                     onChange={(e) => setEnglish(e.target.value)}
                     className="h-12 text-lg border-2 focus:border-blue-400 dark:focus:border-blue-600 transition-all"
@@ -256,6 +303,33 @@ export default function AddWordPage() {
                     )}
                   </AnimatePresence>
                 </div>
+                
+                {/* 🆕 Badge hiển thị word/phrase */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={wordType}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                  >
+                    <Badge 
+                      variant={wordType === "phrase" ? "default" : "secondary"}
+                      className="mt-1"
+                    >
+                      {wordType === "phrase" ? (
+                        <>
+                          <MessageSquare className="w-3 h-3 mr-1" />
+                          Phrase detected
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-3 h-3 mr-1" />
+                          Single word
+                        </>
+                      )}
+                    </Badge>
+                  </motion.div>
+                </AnimatePresence>
               </motion.div>
 
               {/* Vietnamese Meaning */}
@@ -288,26 +362,81 @@ export default function AddWordPage() {
                   />
                 </div>
               </motion.div>
-              {/* Transcription */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.425 }}
-                className="space-y-2"
-              >
-                <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Languages className="w-4 h-4" />
-                  Transcription
-                </label>
-                <div className="relative">
-                  <Input
-                    placeholder="Transcription will appear here..."
-                    value={transcription}
-                    onChange={(e) => setTranscription(e.target.value)}
-                    className="h-12 text-lg bg-muted/50 border-2 border-dashed"
-                  />
-                </div>
-              </motion.div>
+
+              {/* 🆕 Part of Speech (chỉ hiện với WORD) */}
+              {wordType === "word" && availableParts.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4125 }}
+                  className="space-y-2"
+                >
+                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Languages className="w-4 h-4" />
+                    Part of Speech
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableParts.map((part, index) => (
+                      <Badge
+                        key={index}
+                        variant={selectedPartIndex === index ? "default" : "outline"}
+                        onClick={() => setSelectedPartIndex(index)}
+                        className="cursor-pointer px-4 py-2 text-sm hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                      >
+                        {part.partOfSpeech}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground italic mt-2">
+                    💡 {currentDefinition}
+                  </p>
+                </motion.div>
+              )}
+
+              {/* 🆕 Phrase Type (chỉ hiện với PHRASE) */}
+              {wordType === "phrase" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4125 }}
+                  className="space-y-2"
+                >
+                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <MessageSquare className="w-4 h-4" />
+                    Type
+                  </label>
+                  <Badge variant="outline" className="px-4 py-2">
+                    Phrase
+                  </Badge>
+                  <p className="text-sm text-muted-foreground italic">
+                    💡 This is a phrase (multiple words). Transcription is not available for phrases.
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Transcription (chỉ hiện với WORD) */}
+              {wordType === "word" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.425 }}
+                  className="space-y-2"
+                >
+                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Languages className="w-4 h-4" />
+                    Transcription
+                  </label>
+                  <div className="relative">
+                    <Input
+                      placeholder="Transcription will appear here..."
+                      value={transcription}
+                      onChange={(e) => setTranscription(e.target.value)}
+                      className="h-12 text-lg bg-muted/50 border-2 border-dashed"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
               {/* Example Sentence */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -367,7 +496,7 @@ export default function AddWordPage() {
                 </div>
 
                 <p className="text-xs text-muted-foreground italic">
-                  💡 Tip: Examples help you remember the word better!
+                  💡 Tip: Examples help you remember the {wordType} better!
                 </p>
               </motion.div>
 
@@ -444,7 +573,7 @@ export default function AddWordPage() {
                         className="flex items-center gap-2"
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        Word Added Successfully!
+                        {wordType === "phrase" ? "Phrase" : "Word"} Added Successfully!
                       </motion.div>
                     ) : saving ? (
                       <motion.div
@@ -454,7 +583,7 @@ export default function AddWordPage() {
                         className="flex items-center gap-2"
                       >
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Adding Word...
+                        Adding {wordType === "phrase" ? "Phrase" : "Word"}...
                       </motion.div>
                     ) : (
                       <motion.div
@@ -463,7 +592,7 @@ export default function AddWordPage() {
                         animate={{ opacity: 1 }}
                         className="flex items-center gap-2"
                       >
-                        Add Word
+                        Add {wordType === "phrase" ? "Phrase" : "Word"}
                         <ArrowRight className="w-5 h-5" />
                       </motion.div>
                     )}
@@ -476,12 +605,18 @@ export default function AddWordPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="flex justify-center gap-2"
+                className="flex justify-center gap-2 flex-wrap"
               >
                 <Badge variant="outline" className="px-4 py-2">
                   <Sparkles className="w-3 h-3 mr-1" />
                   AI-powered translation
                 </Badge>
+                {wordType === "phrase" && (
+                  <Badge variant="outline" className="px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                    <MessageSquare className="w-3 h-3 mr-1 text-blue-500" />
+                    Multi-word phrase
+                  </Badge>
+                )}
                 {example && (
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
                     <Badge

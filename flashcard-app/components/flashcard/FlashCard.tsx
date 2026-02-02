@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Word } from "@/app/types/word";
-import { Sparkles, Volume2, Check } from "lucide-react";
+import { Sparkles, Volume2, Check, BookOpen } from "lucide-react";
 
 type Props = {
   word: Word;
@@ -64,10 +64,30 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
     synth.speak(utterance);
   };
 
+  // 🆕 Handler riêng cho card click
+  const handleCardClick = () => {
+    setFlip(!flip);
+  };
+
+  // 🆕 Get color cho part of speech badge
+  const getPartOfSpeechColor = (pos: string) => {
+    const lower = pos?.toLowerCase() || "";
+    if (lower === "noun") return "from-blue-400 to-blue-600";
+    if (lower === "verb") return "from-green-400 to-green-600";
+    if (lower === "adjective") return "from-yellow-400 to-orange-500";
+    if (lower === "adverb") return "from-pink-400 to-pink-600";
+    if (lower === "phrase") return "from-purple-400 to-purple-600";
+    if (lower === "preposition") return "from-teal-400 to-teal-600";
+    if (lower === "conjunction") return "from-indigo-400 to-indigo-600";
+    if (lower === "pronoun") return "from-cyan-400 to-cyan-600";
+    if (lower === "interjection") return "from-red-400 to-red-600";
+    return "from-gray-400 to-gray-600";
+  };
+
   return (
     <motion.div
       className="perspective cursor-pointer"
-      onClick={() => setFlip(!flip)}
+      onClick={handleCardClick}
       whileHover={{ scale: 1.08, y: -8 }}
       whileTap={{ scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -177,10 +197,23 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
               </motion.button>
             </div>
 
-            {/* TOPIC */}
-            <Badge className="mt-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 text-xs font-semibold shadow">
-              {word.topic}
-            </Badge>
+            {/* 🆕 PART OF SPEECH + TOPIC */}
+            <div className="flex items-center gap-2 mt-2">
+              {/* Part of Speech Badge */}
+              {word.partOfSpeech && (
+                <Badge 
+                  className={`bg-gradient-to-r ${getPartOfSpeechColor(word.partOfSpeech)} text-white px-3 py-1 text-xs font-semibold shadow flex items-center gap-1`}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  {word.partOfSpeech}
+                </Badge>
+              )}
+
+              {/* TOPIC Badge */}
+              <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 text-xs font-semibold shadow">
+                {word.topic}
+              </Badge>
+            </div>
           </motion.div>
 
           {/* HINT */}
@@ -207,6 +240,23 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
             }}
             transition={{ delay: flip ? 0.4 : 0, duration: 0.5 }}
           >
+            {/* 🆕 PART OF SPEECH (Back side) */}
+            {word.partOfSpeech && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : -5 }}
+                transition={{ delay: 0.5 }}
+                className="mb-3"
+              >
+                <Badge 
+                  className={`bg-gradient-to-r ${getPartOfSpeechColor(word.partOfSpeech)} text-white px-3 py-1 text-xs font-semibold shadow-lg flex items-center gap-1 mx-auto w-fit`}
+                >
+                  <BookOpen className="w-3 h-3" />
+                  {word.partOfSpeech}
+                </Badge>
+              </motion.div>
+            )}
+
             {/* MEANING */}
             <motion.h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
               {word.meaning}
@@ -220,34 +270,42 @@ export default function FlashCard({ word, onToggleLearned }: Props) {
                 animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : 10 }}
                 transition={{ delay: 0.6 }}
               >
-                “{word.example}”
+                "{word.example}"
               </motion.p>
             )}
 
             {/* 🔊 LISTEN EXAMPLE */}
             {word.example && (
-              <motion.button
-                className="mt-3 inline-flex items-center gap-1 text-xs text-purple-500 hover:text-purple-600"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  speak(word.example!);
-                }}
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : 5 }}
+                transition={{ delay: 0.7 }}
+                className="mt-3"
               >
-                <Volume2 className="w-3 h-3" />
-                Listen example
-              </motion.button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-1.5 px-3 text-xs text-purple-500 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation(); // 🚫 Chặn event bubble lên card
+                    e.preventDefault(); // 🚫 Chặn default behavior
+                    speak(word.example!);
+                  }}
+                >
+                  <Volume2 className="w-3 h-3 mr-1" />
+                  Listen example
+                </Button>
+              </motion.div>
             )}
           </motion.div>
 
           {/* Hint */}
-          <motion.p
+          {/* <motion.p
             className="text-xs text-gray-400 absolute bottom-4"
             animate={{ opacity: flip ? 0.6 : 0 }}
           >
             Click to flip back 🔄
-          </motion.p>
+          </motion.p> */}
         </Card>
       </motion.div>
     </motion.div>
