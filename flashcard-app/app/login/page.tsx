@@ -164,15 +164,15 @@ function StoneInput({
 }) {
   return (
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4  dark:text-stone-600" strokeWidth={1.5} />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black  " strokeWidth={1.5} />
       <input
         type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full h-11 pl-10 pr-4 text-sm bg-white/70 dark:bg-stone-900/70 backdrop-blur-sm
-          border border-stone-200/80 dark:border-stone-700 rounded-xl
-          text-stone-800 dark:text-stone-100
-          placeholder:text-stone-300 dark:placeholder:text-stone-600
+        className="w-full h-11 pl-10 pr-4 text-sm bg-white/70 backdrop-blur-sm
+          border border-stone-200/80  rounded-xl
+          text-stone-800 
+          placeholder:text-stone-300 
           focus:outline-none focus:border-stone-400 dark:focus:border-stone-500
-          focus:bg-white dark:focus:bg-stone-900 transition-all"
+            transition-all"
       />
     </div>
   );
@@ -212,7 +212,7 @@ export default function LoginPage() {
       <motion.div
         initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-stone-900 dark:bg-stone-950 px-12 py-14 relative overflow-hidden"
+        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-stone-900  px-12 py-14 relative overflow-hidden"
       >
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 39px,#fff 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,#fff 40px)" }} />
@@ -253,7 +253,7 @@ export default function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-[2] w-full max-w-sm bg-white/50 dark:bg-stone-900/50 backdrop-blur-lg border border-white/70 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
+          className="relative z-[2] w-full max-w-sm bg-white/50  backdrop-blur-lg border border-white/70 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
         >
           {/* Mobile wordmark */}
           <div className="lg:hidden mb-8">
@@ -266,7 +266,7 @@ export default function LoginPage() {
             <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-1">
               ログイン · Sign in
             </p>
-            <h1 className="text-3xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">
+            <h1 className="text-3xl font-extralight tracking-tight text-stone-800 ">
               Welcome back
             </h1>
           </motion.div>
@@ -275,7 +275,7 @@ export default function LoginPage() {
           <motion.div {...fadeUp(0.06)} className="mb-6">
             <button
               onClick={handleGoogle} disabled={googleLoading || loading}
-              className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-stone-200/80 dark:border-stone-700 bg-white/70 dark:bg-stone-900/70 backdrop-blur-sm text-sm font-light text-stone-700 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500 hover:bg-white dark:hover:bg-stone-900 transition-all disabled:opacity-40"
+              className="w-full h-11 flex items-center justify-center gap-2.5 rounded-xl border border-stone-200/80    backdrop-blur-sm text-sm font-light text-stone-700  hover:border-stone-400  hover:bg-white  transition-all disabled:opacity-40"
             >
               {googleLoading
                 ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
@@ -310,7 +310,7 @@ export default function LoginPage() {
           {/* Submit */}
           <motion.div {...fadeUp(0.15)}>
             <button onClick={handleLogin} disabled={loading || googleLoading}
-              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-light tracking-wide transition-all disabled:opacity-40 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300">
+              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-light tracking-wide transition-all disabled:opacity-40 bg-stone-900  text-white  hover:bg-stone-700 ">
               {loading
                 ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
                 : <><span>Sign in</span><ArrowRight className="w-4 h-4" strokeWidth={1.5} /></>}
@@ -321,7 +321,7 @@ export default function LoginPage() {
           <motion.div {...fadeUp(0.18)} className="mt-7 flex items-center justify-between">
             <p className="text-xs text-stone-400 dark:text-stone-500">
               Chưa có tài khoản?{" "}
-              <Link href="/register" className="text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 transition-colors underline underline-offset-2">
+              <Link href="/register" className="text-stone-700  hover:text-stone-900  transition-colors underline underline-offset-3">
                 Đăng ký
               </Link>
             </p>
