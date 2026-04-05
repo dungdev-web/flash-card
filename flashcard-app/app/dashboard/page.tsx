@@ -5,21 +5,127 @@ import { useAuth } from "@/app/hooks/useAuth";
 import { getWordsByUser } from "@/app/libs/firestore";
 import { Word } from "@/app/types/word";
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { 
-  BookOpen, 
-  CheckCircle2, 
-  TrendingUp, 
+import {
+  BookOpen,
+  CheckCircle2,
+  TrendingUp,
   Target,
-  Calendar,
   Award,
   Zap,
-  Clock
+  Clock,
+  Circle,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 
+// ─── Animation helpers ────────────────────────────────────────────────────────
+// All elements delay by SHOJI_DELAY so they appear after the shoji doors open
+const SHOJI_DELAY = 1.15;
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const , delay: SHOJI_DELAY + delay },
+});
+
+const fadeIn = (delay = 0) => ({
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: { duration: 0.5, delay: SHOJI_DELAY + delay },
+});
+
+// ─── Achievement ──────────────────────────────────────────────────────────────
+function getAchievement(percent: number) {
+  if (percent >= 90) return { title: "師範", sub: "Shihan · Master",     rank: 5 };
+  if (percent >= 70) return { title: "上級", sub: "Jōkyū · Expert",      rank: 4 };
+  if (percent >= 50) return { title: "中級", sub: "Chūkyū · Advanced",   rank: 3 };
+  if (percent >= 25) return { title: "初級", sub: "Shokyū · Intermediate", rank: 2 };
+  return               { title: "入門", sub: "Nyūmon · Beginner",         rank: 1 };
+}
+
+// ─── Thin progress bar (washi-tape style) ─────────────────────────────────────
+function WashiBar({ value, delay = 0 }: { value: number; delay?: number }) {
+  return (
+    <div className="relative h-[3px] w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+      <motion.div
+        className="absolute inset-y-0 left-0 bg-stone-800 dark:bg-stone-200 rounded-full"
+        initial={{ width: 0 }}
+        animate={{ width: `${value}%` }}
+        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: SHOJI_DELAY + delay }}
+      />
+    </div>
+  );
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  delay,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ElementType;
+  delay: number;
+  accent?: boolean;
+}) {
+  return (
+    <motion.div {...fadeUp(delay)}>
+      <div
+        className={`relative p-5 rounded-2xl border transition-all duration-300 group
+          ${accent
+            ? "bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100"
+            : "bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500"
+          }`}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div className={`p-2 rounded-xl ${accent ? "bg-white/10" : "bg-stone-100 dark:bg-stone-800"}`}>
+            <Icon
+              className={`w-4 h-4 ${accent ? "text-stone-100 dark:text-stone-900" : "text-stone-500 dark:text-stone-400"}`}
+              strokeWidth={1.5}
+            />
+          </div>
+        </div>
+        <p className={`text-[11px] uppercase tracking-[2px] font-medium mb-1 ${accent ? "text-stone-400 dark:text-stone-500" : "text-stone-400 dark:text-stone-500"}`}>
+          {label}
+        </p>
+        <p className={`text-3xl font-light tracking-tight ${accent ? "text-white dark:text-stone-900" : "text-stone-800 dark:text-stone-100"}`}>
+          {value}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Rank dots ────────────────────────────────────────────────────────────────
+function RankDots({ rank }: { rank: number }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className={`w-1.5 h-1.5 rounded-full transition-colors ${
+            i < rank ? "bg-stone-800 dark:bg-stone-200" : "bg-stone-300 dark:bg-stone-600"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Divider (torii-inspired) ─────────────────────────────────────────────────
+function KumikoLine() {
+  return (
+    <div className="flex items-center gap-3 my-8">
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+      <div className="w-1 h-1 rounded-full bg-stone-400 dark:bg-stone-500" />
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+    </div>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { user } = useAuth();
   const [words, setWords] = useState<Word[]>([]);
@@ -34,38 +140,24 @@ export default function DashboardPage() {
     });
   }, [user]);
 
-  // 📊 STATISTICS LOGIC
-  const total = words.length;
-  const learned = words.filter((w) => w.learned).length;
-  const percent = total ? Math.round((learned / total) * 100) : 0;
+  const total     = words.length;
+  const learned   = words.filter((w) => w.learned).length;
+  const percent   = total ? Math.round((learned / total) * 100) : 0;
   const remaining = total - learned;
 
-  // Group by topics
   const topicStats = words.reduce((acc, word) => {
     const topic = word.topic || "Other";
-    if (!acc[topic]) {
-      acc[topic] = { total: 0, learned: 0 };
-    }
+    if (!acc[topic]) acc[topic] = { total: 0, learned: 0 };
     acc[topic].total++;
     if (word.learned) acc[topic].learned++;
     return acc;
   }, {} as Record<string, { total: number; learned: number }>);
 
-  // Recent words (last 5)
   const recentWords = [...words]
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
     .slice(0, 5);
 
-  // Achievement levels
-  const getAchievement = () => {
-    if (percent >= 90) return { title: "Master", icon: "🏆", color: "from-yellow-400 to-orange-400" };
-    if (percent >= 70) return { title: "Expert", icon: "⭐", color: "from-blue-400 to-purple-400" };
-    if (percent >= 50) return { title: "Advanced", icon: "🎯", color: "from-green-400 to-emerald-400" };
-    if (percent >= 25) return { title: "Intermediate", icon: "📚", color: "from-cyan-400 to-blue-400" };
-    return { title: "Beginner", icon: "🌱", color: "from-gray-400 to-gray-500" };
-  };
-
-  const achievement = getAchievement();
+  const achievement = getAchievement(percent);
 
   if (isLoading) {
     return (
@@ -73,9 +165,9 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-[400px]">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           >
-            <BookOpen className="w-12 h-12 text-blue-500" />
+            <Circle className="w-8 h-8 text-stone-400" strokeWidth={1} />
           </motion.div>
         </div>
       </AuthGuard>
@@ -84,256 +176,186 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="space-y-8 pb-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-0">
+
+        {/* ── Header ── */}
+        <motion.div {...fadeUp(0)} className="flex items-end justify-between mb-10">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            {/* Japanese title watermark */}
+            <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-2">
+              学習の記録 · Learning Record
+            </p>
+            <h1 className="text-4xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">
               Dashboard
             </h1>
-            <p className="text-muted-foreground mt-1">
-              Welcome back! Track your learning progress
-            </p>
           </div>
-          
-          {/* Achievement Badge */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-          >
-            <Badge className={`px-4 py-2 text-lg bg-gradient-to-r ${achievement.color} text-white border-0`}>
-              {achievement.icon} {achievement.title}
-            </Badge>
+
+          {/* Achievement badge */}
+          <motion.div {...fadeIn(0.1)} className="text-right">
+            <p className="text-4xl font-thin text-stone-800 dark:text-stone-100 leading-none">
+              {achievement.title}
+            </p>
+            <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1 tracking-wide">
+              {achievement.sub}
+            </p>
+            <div className="flex justify-end mt-2">
+              <RankDots rank={achievement.rank} />
+            </div>
           </motion.div>
         </motion.div>
 
-        {/* Main Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Words"
-            value={total}
-            icon={<BookOpen className="w-6 h-6" />}
-            color="from-blue-500 to-cyan-500"
-            delay={0.1}
-          />
-          <StatCard
-            title="Learned"
-            value={learned}
-            icon={<CheckCircle2 className="w-6 h-6" />}
-            color="from-green-500 to-emerald-500"
-            delay={0.2}
-          />
-          <StatCard
-            title="Remaining"
-            value={remaining}
-            icon={<Target className="w-6 h-6" />}
-            color="from-orange-500 to-red-500"
-            delay={0.3}
-          />
-          <StatCard
-            title="Progress"
-            value={`${percent}%`}
-            icon={<TrendingUp className="w-6 h-6" />}
-            color="from-purple-500 to-pink-500"
-            delay={0.4}
-          />
+        {/* ── Stat row ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard label="Total"     value={total}     icon={BookOpen}     delay={0.05} accent />
+          <StatCard label="Learned"   value={learned}   icon={CheckCircle2} delay={0.1} />
+          <StatCard label="Remaining" value={remaining} icon={Target}       delay={0.15} />
+          <StatCard label="Progress"  value={`${percent}%`} icon={TrendingUp} delay={0.2} />
         </div>
 
-        {/* Progress Bar Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-2 border-blue-100 dark:border-blue-900">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Zap className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Overall Progress</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {learned} of {total} words mastered
-                  </p>
-                </div>
-              </div>
-              <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+        <KumikoLine />
+
+        {/* ── Progress hero ── */}
+        <motion.div {...fadeUp(0.25)}>
+          <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <Zap className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
+              <span className="text-[11px] uppercase tracking-[2px] text-stone-400 dark:text-stone-500">
+                Overall Mastery
+              </span>
+              <span className="ml-auto text-2xl font-light text-stone-800 dark:text-stone-100">
                 {percent}%
-              </div>
+              </span>
             </div>
-            <Progress value={percent} className="h-3" />
-          </Card>
+            <WashiBar value={percent} delay={0.3} />
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-3">
+              {learned} of {total} words mastered
+            </p>
+          </div>
         </motion.div>
 
-        {/* Topics & Recent Words */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Topics Breakdown */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Award className="w-5 h-5 text-purple-500" />
-                <h3 className="font-semibold text-lg">Topics Breakdown</h3>
+        <KumikoLine />
+
+        {/* ── Topics + Recent ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          {/* Topics */}
+          <motion.div {...fadeUp(0.3)}>
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-6 h-full">
+              <div className="flex items-center gap-2 mb-6">
+                <Award className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
+                <span className="text-[11px] uppercase tracking-[2px] text-stone-400 dark:text-stone-500">
+                  Topics
+                </span>
               </div>
-              
+
               {Object.keys(topicStats).length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-5">
                   {Object.entries(topicStats).map(([topic, stats], idx) => {
-                    const topicPercent = Math.round((stats.learned / stats.total) * 100);
+                    const tp = Math.round((stats.learned / stats.total) * 100);
                     return (
-                      <motion.div
-                        key={topic}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.7 + idx * 0.1 }}
-                        className="space-y-2"
-                      >
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium">{topic}</span>
-                          <span className="text-muted-foreground">
+                      <motion.div key={topic} {...fadeUp(0.35 + idx * 0.07)}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                            {topic}
+                          </span>
+                          <span className="text-xs text-stone-400 dark:text-stone-500 tabular-nums">
                             {stats.learned}/{stats.total}
                           </span>
                         </div>
-                        <Progress value={topicPercent} className="h-2" />
+                        <WashiBar value={tp} delay={0.4 + idx * 0.07} />
                       </motion.div>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  No topics yet. Start adding words!
+                <p className="text-sm text-stone-400 dark:text-stone-500 text-center py-10">
+                  まだトピックがありません<br />
+                  <span className="text-xs">No topics yet — start adding words.</span>
                 </p>
               )}
-            </Card>
+            </div>
           </motion.div>
 
-          {/* Recent Words */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-5 h-5 text-blue-500" />
-                <h3 className="font-semibold text-lg">Recent Words</h3>
+          {/* Recent words */}
+          <motion.div {...fadeUp(0.32)}>
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl p-6 h-full">
+              <div className="flex items-center gap-2 mb-6">
+                <Clock className="w-4 h-4 text-stone-400" strokeWidth={1.5} />
+                <span className="text-[11px] uppercase tracking-[2px] text-stone-400 dark:text-stone-500">
+                  Recent Words
+                </span>
               </div>
-              
+
               {recentWords.length > 0 ? (
-                <div className="space-y-3">
+                <div className="divide-y divide-stone-100 dark:divide-stone-800">
                   {recentWords.map((word, idx) => (
                     <motion.div
                       key={word.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.7 + idx * 0.1 }}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      {...fadeUp(0.38 + idx * 0.06)}
+                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${word.learned ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                            word.learned
+                              ? "bg-stone-800 dark:bg-stone-200"
+                              : "bg-stone-300 dark:bg-stone-600"
+                          }`}
+                        />
                         <div>
-                          <p className="font-medium">{word.english}</p>
-                          <p className="text-sm text-muted-foreground">{word.meaning}</p>
+                          <p className="text-sm font-medium text-stone-800 dark:text-stone-100">
+                            {word.english}
+                          </p>
+                          <p className="text-xs text-stone-400 dark:text-stone-500">
+                            {word.meaning}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="text-xs">
+                      <span className="text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-700 rounded-full px-2 py-0.5">
                         {word.topic}
-                      </Badge>
+                      </span>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  No words yet. Start your journey!
+                <p className="text-sm text-stone-400 dark:text-stone-500 text-center py-10">
+                  言葉がまだありません<br />
+                  <span className="text-xs">No words yet — begin your journey.</span>
                 </p>
               )}
-            </Card>
+            </div>
           </motion.div>
         </div>
 
-        {/* Motivational Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-        >
-          <Card className="p-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
-            <div className="flex items-center gap-4">
-              <div className="text-5xl">
-                {percent >= 75 ? "🎉" : percent >= 50 ? "💪" : percent >= 25 ? "🚀" : "🌟"}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-1">
-                  {percent >= 75
-                    ? "Excellent work! You're almost there!"
-                    : percent >= 50
-                    ? "Great progress! Keep it up!"
-                    : percent >= 25
-                    ? "You're on the right track!"
-                    : "Start your learning journey today!"}
-                </h3>
-                <p className="text-blue-100">
-                  {remaining > 0
-                    ? `${remaining} more words to master. You can do it!`
-                    : "Congratulations! You've mastered all your words!"}
-                </p>
-              </div>
+        <KumikoLine />
+
+        {/* ── Motivational footer ── */}
+        <motion.div {...fadeUp(0.5)}>
+          <div className="flex items-center justify-between px-6 py-5 rounded-2xl bg-stone-900 dark:bg-stone-100 border border-stone-900 dark:border-stone-100">
+            <div>
+              <p className="text-white dark:text-stone-900 font-light text-lg">
+                {percent >= 75
+                  ? "もう少しです — Almost there."
+                  : percent >= 50
+                  ? "よく頑張っています — Keep going."
+                  : percent >= 25
+                  ? "いい調子です — On the right track."
+                  : "始めましょう — Begin your journey."}
+              </p>
+              <p className="text-stone-400 dark:text-stone-600 text-xs mt-1">
+                {remaining > 0
+                  ? `${remaining} words remaining to master`
+                  : "All words mastered — 完璧です。"}
+              </p>
             </div>
-          </Card>
+            <BookOpen
+              className="w-6 h-6 text-stone-600 dark:text-stone-400 flex-shrink-0 ml-6"
+              strokeWidth={1}
+            />
+          </div>
         </motion.div>
+
       </div>
     </AuthGuard>
-  );
-}
-
-// 👉 Enhanced StatCard Component
-function StatCard({
-  title,
-  value,
-  icon,
-  color,
-  delay,
-}: {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  color: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      whileHover={{ y: -5, scale: 1.02 }}
-    >
-      <Card className="p-6 relative overflow-hidden group hover:shadow-xl transition-all border-2 hover:border-blue-200 dark:hover:border-blue-800">
-        {/* Gradient Background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-5 group-hover:opacity-10 transition-opacity`} />
-        
-        {/* Content */}
-        <div className="relative">
-          <div className="flex items-center justify-between mb-3">
-            <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow-lg`}>
-              <div className="text-white">{icon}</div>
-            </div>
-          </div>
-          
-          <p className="text-sm text-muted-foreground mb-1">{title}</p>
-          <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-            {value}
-          </p>
-        </div>
-      </Card>
-    </motion.div>
   );
 }

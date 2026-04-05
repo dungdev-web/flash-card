@@ -1,38 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useAuth } from "@/app/hooks/useAuth";
 import { addWord } from "@/app/libs/firestore";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  BookPlus,
-  Languages,
-  Globe,
-  ArrowRight,
-  Wand2,
-  FileText,
-  Lightbulb,
-  MessageSquare, // 🆕 Icon cho phrase
+  Loader2, Check, Globe, Languages, MessageSquare,
+  FileText, Wand2, Tag, ArrowRight, Plus,
+  ImageOff, RefreshCw, BookOpen, Layers, Hash,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import AuthGuard from "@/components/auth/AuthGuard";
 
+const SHOJI_DELAY = 1.15;
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const, delay: SHOJI_DELAY + delay },
+});
+
 const TOPICS = [
-  { value: "Daily", emoji: "☀️", color: "from-orange-400 to-yellow-400" },
-  { value: "Work", emoji: "💼", color: "from-blue-400 to-cyan-400" },
-  { value: "Travel", emoji: "✈️", color: "from-green-400 to-emerald-400" },
-  { value: "Food", emoji: "🍔", color: "from-red-400 to-pink-400" },
-  { value: "Tech", emoji: "💻", color: "from-purple-400 to-violet-400" },
-  { value: "Health", emoji: "🏥", color: "from-teal-400 to-cyan-400" },
+  { value: "Daily",  labelJa: "日常" },
+  { value: "Work",   labelJa: "仕事" },
+  { value: "Travel", labelJa: "旅行" },
+  { value: "Food",   labelJa: "食事" },
+  { value: "Tech",   labelJa: "技術" },
+  { value: "Health", labelJa: "健康" },
 ];
 
 interface MeaningData {
@@ -40,598 +34,393 @@ interface MeaningData {
   definitions: Array<{ definition: string }>;
 }
 
+function Label({ icon: Icon, children, aside }: {
+  icon: React.ElementType; children: React.ReactNode; aside?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[2px] text-stone-400 dark:text-stone-500">
+        <Icon className="w-3 h-3" strokeWidth={1.5} />{children}
+      </div>
+      {aside}
+    </div>
+  );
+}
+
+function StoneInput({ value, onChange, placeholder, disabled, className = "" }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean; className?: string;
+}) {
+  return (
+    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled}
+      className={`w-full bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-lg px-3 h-9 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors disabled:opacity-40 ${className}`}
+    />
+  );
+}
+
+function StoneTextarea({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3}
+      className="w-full h-full bg-stone-50 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 text-sm text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors resize-none"
+    />
+  );
+}
+
+// ── Word image via internal API (Unsplash official or Picsum fallback) ──
+interface ImgData { url: string; author: string; authorUrl: string }
+
+function WordImagePanel({ word, meaning }: { word: string; meaning: string }) {
+  const [imgKey,     setImgKey]     = useState(0);
+  const [imgData,    setImgData]    = useState<ImgData | null>(null);
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgError,   setImgError]   = useState(false);
+
+  useEffect(() => {
+    if (!word) { setImgData(null); return; }
+    setImgLoading(true);
+    setImgError(false);
+    fetch(`/api/word-image?word=${encodeURIComponent(word)}&sig=${imgKey}`)
+      .then(r => r.json())
+      .then(d => { setImgData(d); setImgLoading(false); })
+      .catch(() => { setImgError(true); setImgLoading(false); });
+  }, [word, imgKey]);
+
+  const src = imgData?.url ?? null;
+
+  return (
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl overflow-hidden" style={{ height: 240 }}>
+      <div className="relative w-full h-full bg-stone-100 dark:bg-stone-800">
+        {!word ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <ImageOff className="w-6 h-6 text-stone-300 dark:text-stone-600" strokeWidth={1} />
+            <p className="text-[10px] uppercase tracking-[2px] text-stone-300 dark:text-stone-600">Enter a word</p>
+          </div>
+        ) : imgError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <ImageOff className="w-5 h-5 text-stone-300 dark:text-stone-600" strokeWidth={1} />
+            <p className="text-[10px] text-stone-400 dark:text-stone-500">No image</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div key={word + imgKey} className="absolute inset-0"
+              initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}>
+              {imgLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}>
+                    <Loader2 className="w-5 h-5 text-stone-300" strokeWidth={1.5} />
+                  </motion.div>
+                </div>
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src!} alt={word} className="w-full h-full object-cover"
+                onLoad={() => setImgLoading(false)}
+                onError={() => { setImgError(true); setImgLoading(false); }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+              <div className="absolute bottom-3 left-3 right-10">
+                <p className="text-white text-base font-extralight tracking-wide drop-shadow">{word}</p>
+                {meaning && <p className="text-white/65 text-xs font-light mt-0.5">{meaning}</p>}
+              </div>
+              <button onClick={() => { setImgKey(k => k + 1); }}
+                className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/30 hover:bg-black/50 flex items-center justify-center transition-colors">
+                <RefreshCw className="w-3.5 h-3.5 text-white" strokeWidth={1.5} />
+              </button>
+              {imgData?.author && (<a href={imgData.authorUrl} target="_blank" rel="noreferrer" className="absolute bottom-2 right-2.5 text-[9px] text-white/35 tracking-wide hover:text-white/60 transition-colors">{imgData.author} · Unsplash</a>)}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Word stats ──
+function WordStatsPanel({ word, meaning, partOfSpeech, definition, transcription }: {
+  word: string; meaning: string; partOfSpeech: string; definition: string; transcription: string;
+}) {
+  if (!word) return (
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-4 flex flex-col items-center justify-center gap-2" style={{ minHeight: 100 }}>
+      <BookOpen className="w-5 h-5 text-stone-300 dark:text-stone-600" strokeWidth={1} />
+      <p className="text-[10px] uppercase tracking-[2px] text-stone-300 dark:text-stone-600">Word preview</p>
+    </div>
+  );
+
+  const letters   = word.replace(/[^a-zA-Z]/g, "").length;
+  const syllables = Math.max(1, word.toLowerCase().replace(/[^aeiouy]/g,"").replace(/[aeiouy]{2,}/g,"a").length);
+
+  return (
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5">
+      <div className="flex items-baseline gap-2 flex-wrap mb-2 pb-2 border-b border-stone-100 dark:border-stone-800">
+        <span className="text-lg font-extralight text-stone-800 dark:text-stone-100 tracking-tight">{word}</span>
+        {transcription && <span className="text-xs text-stone-400 dark:text-stone-500 font-light">/{transcription}/</span>}
+      </div>
+      {meaning && <p className="text-sm text-stone-500 dark:text-stone-400 font-light mb-2.5">{meaning}</p>}
+      <div className="grid grid-cols-3 gap-2 mb-2.5">
+        {[
+          { icon: Hash,    label: "Letters",   value: letters },
+          { icon: Layers,  label: "Syllables", value: syllables },
+          { icon: BookOpen,label: "Type",      value: partOfSpeech || "—" },
+        ].map(({ icon: Icon, label, value }) => (
+          <div key={label} className="text-center py-1.5 rounded-lg bg-stone-50 dark:bg-stone-800">
+            <p className="text-sm font-light text-stone-700 dark:text-stone-200">{value}</p>
+            <p className="text-[9px] uppercase tracking-[1px] text-stone-300 dark:text-stone-600 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+      {definition && (
+        <p className="text-[11px] text-stone-400 dark:text-stone-500 italic leading-relaxed">
+          &ldquo;{definition}&rdquo;
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Memory tip ──
+function MemoryTipPanel({ word, meaning, example }: { word: string; meaning: string; example: string }) {
+  return (
+    <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5 flex-1">
+      <Label icon={BookOpen}>Memory Tip</Label>
+      {word ? (
+        <motion.div key={word} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {word.split("").map((ch, i) => (
+              <span key={i} className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-light text-stone-700 dark:text-stone-300">
+                {ch === " " ? "·" : ch}
+              </span>
+            ))}
+          </div>
+          <div className="space-y-1.5 pt-1">
+            {[
+              { label: "Associate", text: meaning ? `Link "${word}" → "${meaning}" visually` : "—" },
+              { label: "Repeat",    text: "Say 3× aloud with eyes closed" },
+              { label: "Use it",    text: example ? "Write 1 personal sentence today" : "Generate an example first" },
+            ].map(({ label, text }) => (
+              <div key={label} className="flex items-start gap-2">
+                <div className="w-1 h-1 rounded-full bg-stone-300 dark:bg-stone-600 mt-1.5 flex-shrink-0" />
+                <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                  <span className="text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500">{label} · </span>
+                  {text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      ) : (
+        <p className="text-[11px] text-stone-300 dark:text-stone-600 italic">Enter a word to see tips.</p>
+      )}
+    </div>
+  );
+}
+
+// ── Main ──
 export default function AddWordPage() {
   const { user } = useAuth();
-  const router = useRouter();
+  const router   = useRouter();
 
-  const [english, setEnglish] = useState("");
-  const [meaning, setMeaning] = useState("");
-  const [example, setExample] = useState("");
-  const [transcription, setTranscription] = useState("");
-  const [audioUrl, setAudioUrl] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [english,        setEnglish]        = useState("");
+  const [meaning,        setMeaning]        = useState("");
+  const [example,        setExample]        = useState("");
+  const [transcription,  setTranscription]  = useState("");
+  const [audioUrl,       setAudioUrl]       = useState("");
+  const [loading,        setLoading]        = useState(false);
   const [loadingExample, setLoadingExample] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
-  const [topic, setTopic] = useState("Daily");
-  
+  const [saving,         setSaving]         = useState(false);
+  const [success,        setSuccess]        = useState(false);
+  const [error,          setError]          = useState("");
+  const [topic,          setTopic]          = useState("Daily");
   const [availableParts, setAvailableParts] = useState<MeaningData[]>([]);
-  const [selectedPartIndex, setSelectedPartIndex] = useState(0);
-  
-  // 🆕 Thêm state để phân loại word/phrase
-  const [wordType, setWordType] = useState<"word" | "phrase">("word");
-  
+  const [selectedPart,   setSelectedPart]   = useState(0);
+  const [wordType,       setWordType]       = useState<"word" | "phrase">("word");
+
   const debouncedEnglish = useDebounce(english, 500);
 
-  // 🆕 Kiểm tra xem là word hay phrase
+  useEffect(() => { setWordType(english.trim().includes(" ") ? "phrase" : "word"); }, [english]);
+
   useEffect(() => {
-    if (english.trim().includes(" ")) {
-      setWordType("phrase");
-    } else {
-      setWordType("word");
-    }
-  }, [english]);
-
-  // Fetch meaning
-  useEffect(() => {
-    if (!debouncedEnglish || debouncedEnglish.length < 2) {
-      setMeaning("");
-      return;
-    }
-
-    const fetchMeaning = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `/api/translate?word=${encodeURIComponent(debouncedEnglish)}`,
-        );
-        const data = await res.json();
-        setMeaning(data.meaning || "");
-      } catch {
-        setMeaning("");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMeaning();
+    if (!debouncedEnglish || debouncedEnglish.length < 2) { setMeaning(""); return; }
+    setLoading(true);
+    fetch(`/api/translate?word=${encodeURIComponent(debouncedEnglish)}`)
+      .then(r => r.json()).then(d => setMeaning(d.meaning || ""))
+      .catch(() => setMeaning("")).finally(() => setLoading(false));
   }, [debouncedEnglish]);
 
-  const simpleTranscription = (word: string) => {
-    return word
-      .toLowerCase()
-      .replace(/ough/g, "ɔː")
-      .replace(/tion/g, "ʃən")
-      .replace(/c/g, "k")
-      .replace(/qu/g, "kw")
-      .replace(/e$/g, "")
-      .split("")
-      .map((char) => {
-        switch (char) {
-          case "a": return "æ";
-          case "e": return "ɛ";
-          case "i": return "ɪ";
-          case "o": return "ɒ";
-          case "u": return "ʌ";
-          case "y": return "aɪ";
-          default: return char;
-        }
-      })
-      .join("");
-  };
+  const simpleTranscription = (w: string) =>
+    w.toLowerCase().replace(/ough/g,"ɔː").replace(/tion/g,"ʃən").replace(/c/g,"k").replace(/qu/g,"kw").replace(/e$/g,"")
+     .split("").map(c=>({a:"æ",e:"ɛ",i:"ɪ",o:"ɒ",u:"ʌ",y:"aɪ"}[c]??c)).join("");
 
-  // Fetch transcription (chỉ cho word, không cho phrase)
   useEffect(() => {
-    // 🆕 Chỉ fetch transcription nếu là word đơn
-    if (!english || wordType === "phrase") {
-      setTranscription("");
-      setAudioUrl("");
-      setAvailableParts([]);
-      return;
-    }
-
-    const fetchTranscription = async () => {
-      try {
-        const res = await fetch(
-          `/api/transcription?word=${encodeURIComponent(english)}`,
-        );
-        const data = await res.json();
-        setAudioUrl(data.audioUrl || "");
-
-        if (data.phonetic) {
-          setTranscription(data.phonetic);
-        } else {
-          setTranscription(simpleTranscription(english));
-        }
-
-        if (data.meanings && data.meanings.length > 0) {
-          setAvailableParts(data.meanings);
-          setSelectedPartIndex(0);
-        } else {
-          setAvailableParts([]);
-        }
-      } catch (error) {
-        setTranscription(simpleTranscription(english));
-        setAvailableParts([]);
-      }
-    };
-
-    fetchTranscription();
+    if (!english || wordType === "phrase") { setTranscription(""); setAudioUrl(""); setAvailableParts([]); return; }
+    fetch(`/api/transcription?word=${encodeURIComponent(english)}`)
+      .then(r => r.json()).then(d => {
+        setAudioUrl(d.audioUrl || "");
+        setTranscription(d.phonetic || simpleTranscription(english));
+        if (d.meanings?.length) { setAvailableParts(d.meanings); setSelectedPart(0); } else setAvailableParts([]);
+      }).catch(() => { setTranscription(simpleTranscription(english)); setAvailableParts([]); });
   }, [english, wordType]);
 
-  const currentPartOfSpeech = wordType === "phrase" 
-    ? "phrase" // 🆕 Nếu là phrase, partOfSpeech = "phrase"
-    : (availableParts[selectedPartIndex]?.partOfSpeech || "");
-  
-  const currentDefinition = availableParts[selectedPartIndex]?.definitions[0]?.definition || meaning;
+  const currentPartOfSpeech = wordType === "phrase" ? "phrase" : (availableParts[selectedPart]?.partOfSpeech || "");
+  const currentDefinition   = availableParts[selectedPart]?.definitions[0]?.definition || "";
 
-  // Generate example sentence
   const generateExample = async () => {
     if (!english || !meaning) return;
-
     setLoadingExample(true);
     try {
-      const res = await fetch("/api/generate-example", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          word: english, 
-          meaning: currentDefinition,
-          partOfSpeech: currentPartOfSpeech,
-          topic 
-        }),
+      const r = await fetch("/api/generate-example", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: english, meaning: currentDefinition || meaning, partOfSpeech: currentPartOfSpeech, topic }),
       });
-      const data = await res.json();
-      setExample(data.example || "");
-    } catch {
-      setExample("");
-    } finally {
-      setLoadingExample(false);
-    }
+      setExample((await r.json()).example || "");
+    } catch { setExample(""); } finally { setLoadingExample(false); }
   };
 
   const handleSubmit = async () => {
-    if (!english || !meaning) {
-      setError("Vui lòng nhập đầy đủ thông tin");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
-
+    if (!english || !meaning) { setError("Fill in required fields"); setTimeout(() => setError(""), 3000); return; }
     if (!user) return;
-
     try {
       setSaving(true);
-      await addWord({
-        english,
-        meaning,
-        topic,
-        learned: false,
-        userId: user.uid,
-        example: example || "",
-        isPreset: false,
-        audioUrl: audioUrl || "",
-        phonetic: transcription || "",
-        createdAt: Date.now(),
-        partOfSpeech: currentPartOfSpeech, // 🆕 Lưu "phrase" nếu là cụm từ
-      });
-
+      await addWord({ english, meaning, topic, learned: false, userId: user.uid, example: example || "", isPreset: false, audioUrl: audioUrl || "", phonetic: transcription || "", createdAt: Date.now(), partOfSpeech: currentPartOfSpeech });
       setSuccess(true);
-
-      setTimeout(() => {
-        router.push("/dashboard/flashcards");
-      }, 1500);
-    } catch (err: any) {
-      setError(err.message);
-      setTimeout(() => setError(""), 3000);
-    } finally {
-      setSaving(false);
-    }
+      setTimeout(() => router.push("/dashboard/flashcards"), 1500);
+    } catch (err: any) { setError(err.message); setTimeout(() => setError(""), 3000); }
+    finally { setSaving(false); }
   };
 
   return (
     <AuthGuard>
-      <div className="min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-2xl"
-        >
-          <Card className="relative overflow-hidden bg-linear-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950 border-2 border-blue-100 dark:border-blue-900 shadow-2xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl -mr-32 -mt-32" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-linear-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl -ml-24 -mb-24" />
+      <div className="h-[calc(100vh-57px)] flex flex-col px-6 py-5 max-w-6xl mx-auto overflow-hidden">
 
-            <div className="relative p-8 space-y-6">
-              {/* Header */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-3"
-              >
-                <div className="p-3 rounded-xl bg-linear-to-br from-blue-500 to-purple-500 shadow-lg">
-                  <BookPlus className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold bg-linear-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Add New {wordType === "phrase" ? "Phrase" : "Word"}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Expand your vocabulary journey
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* English Input */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="space-y-2"
-              >
-                <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  {wordType === "phrase" ? (
-                    <>
-                      <MessageSquare className="w-4 h-4" />
-                      English Phrase
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="w-4 h-4" />
-                      English Word
-                    </>
-                  )}
-                </label>
-                <div className="relative">
-                  <Input
-                    placeholder={wordType === "phrase" ? "Enter a phrase..." : "Enter a word..."}
-                    value={english}
-                    onChange={(e) => setEnglish(e.target.value)}
-                    className="h-12 text-lg border-2 focus:border-blue-400 dark:focus:border-blue-600 transition-all"
-                  />
-                  <AnimatePresence>
-                    {loading && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                
-                {/* 🆕 Badge hiển thị word/phrase */}
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={wordType}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
-                  >
-                    <Badge 
-                      variant={wordType === "phrase" ? "default" : "secondary"}
-                      className="mt-1"
-                    >
-                      {wordType === "phrase" ? (
-                        <>
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          Phrase detected
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="w-3 h-3 mr-1" />
-                          Single word
-                        </>
-                      )}
-                    </Badge>
-                  </motion.div>
-                </AnimatePresence>
-              </motion.div>
-
-              {/* Vietnamese Meaning */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="space-y-2"
-              >
-                <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Languages className="w-4 h-4" />
-                  Vietnamese Meaning
-                  {meaning && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center gap-1 text-xs text-blue-500"
-                    >
-                      <Wand2 className="w-3 h-3" />
-                      Auto-suggested
-                    </motion.span>
-                  )}
-                </label>
-                <div className="relative">
-                  <Input
-                    placeholder="Meaning will appear here..."
-                    value={meaning}
-                    onChange={(e) => setMeaning(e.target.value)}
-                    className="h-12 text-lg bg-muted/50 border-2 border-dashed"
-                  />
-                </div>
-              </motion.div>
-
-              {/* 🆕 Part of Speech (chỉ hiện với WORD) */}
-              {wordType === "word" && availableParts.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4125 }}
-                  className="space-y-2"
-                >
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Languages className="w-4 h-4" />
-                    Part of Speech
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableParts.map((part, index) => (
-                      <Badge
-                        key={index}
-                        variant={selectedPartIndex === index ? "default" : "outline"}
-                        onClick={() => setSelectedPartIndex(index)}
-                        className="cursor-pointer px-4 py-2 text-sm hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
-                      >
-                        {part.partOfSpeech}
-                      </Badge>
-                    ))}
+        {/* Header */}
+        <motion.div {...fadeUp(0)} className="flex items-end justify-between mb-4 flex-shrink-0">
+          <div>
+            <p className="text-[10px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-0.5">
+              単語追加 · Add {wordType === "phrase" ? "Phrase" : "Word"}
+            </p>
+            <h1 className="text-2xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">New Entry</h1>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {["Word","Context","Topic"].map((s, i) => {
+              const done = i === 0 ? (!!english && !!meaning) : i === 1 ? !!example : true;
+              return (
+                <div key={s} className="flex items-center gap-1.5">
+                  <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] tracking-wide transition-all duration-300 ${done ? "bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900" : "border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500"}`}>
+                    {done && <Check className="w-2.5 h-2.5" strokeWidth={2.5} />}{s}
                   </div>
-                  <p className="text-sm text-muted-foreground italic mt-2">
-                    💡 {currentDefinition}
-                  </p>
-                </motion.div>
-              )}
-
-              {/* 🆕 Phrase Type (chỉ hiện với PHRASE) */}
-              {wordType === "phrase" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4125 }}
-                  className="space-y-2"
-                >
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <MessageSquare className="w-4 h-4" />
-                    Type
-                  </label>
-                  <Badge variant="outline" className="px-4 py-2">
-                    Phrase
-                  </Badge>
-                  <p className="text-sm text-muted-foreground italic">
-                    💡 This is a phrase (multiple words). Transcription is not available for phrases.
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Transcription (chỉ hiện với WORD) */}
-              {wordType === "word" && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.425 }}
-                  className="space-y-2"
-                >
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Languages className="w-4 h-4" />
-                    Transcription
-                  </label>
-                  <div className="relative">
-                    <Input
-                      placeholder="Transcription will appear here..."
-                      value={transcription}
-                      onChange={(e) => setTranscription(e.target.value)}
-                      className="h-12 text-lg bg-muted/50 border-2 border-dashed"
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Example Sentence */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-                className="space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <FileText className="w-4 h-4" />
-                    Example Sentence
-                    {example && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-1 text-xs text-purple-500"
-                      >
-                        <Lightbulb className="w-3 h-3" />
-                        AI-generated
-                      </motion.span>
-                    )}
-                  </label>
-
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={generateExample}
-                      disabled={!english || !meaning || loadingExample}
-                      className="h-8 text-xs gap-1 hover:bg-purple-50 dark:hover:bg-purple-950/30"
-                    >
-                      {loadingExample ? (
-                        <>
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3 h-3" />
-                          Generate
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
+                  {i < 2 && <div className="w-4 h-px bg-stone-200 dark:bg-stone-700" />}
                 </div>
+              );
+            })}
+          </div>
+        </motion.div>
 
-                <div className="relative">
-                  <Textarea
-                    placeholder="Click 'Generate' for an AI-powered example sentence..."
-                    value={example}
-                    onChange={(e) => setExample(e.target.value)}
-                    className="min-h-20 text-base border-2 focus:border-purple-400 dark:focus:border-purple-600 transition-all resize-none"
-                  />
-                </div>
+        {/* 3-col grid */}
+        <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
 
-                <p className="text-xs text-muted-foreground italic">
-                  💡 Tip: Examples help you remember the {wordType} better!
-                </p>
-              </motion.div>
+          {/* LEFT: word inputs */}
+          <motion.div {...fadeUp(0.04)} className="flex flex-col gap-3 overflow-hidden">
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5">
+              <Label icon={wordType === "phrase" ? MessageSquare : Globe}
+                aside={english ? <span className="text-[10px] px-2 py-0.5 rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 uppercase tracking-wide">{wordType}</span> : null}>
+                English {wordType === "phrase" ? "Phrase" : "Word"}
+              </Label>
+              <div className="relative">
+                <StoneInput value={english} onChange={setEnglish} placeholder={wordType === "phrase" ? "e.g. give up..." : "e.g. ambiguous..."} className="text-base h-10" />
+                <AnimatePresence>{loading && <motion.div className="absolute right-3 top-1/2 -translate-y-1/2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><Loader2 className="w-3.5 h-3.5 text-stone-400 animate-spin" strokeWidth={1.5} /></motion.div>}</AnimatePresence>
+              </div>
+            </div>
 
-              {/* Topic Selection */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="space-y-3"
-              >
-                <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Sparkles className="w-4 h-4" />
-                  Choose Topic
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {TOPICS.map((t, idx) => (
-                    <motion.div
-                      key={t.value}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.6 + idx * 0.05 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <button
-                        onClick={() => setTopic(t.value)}
-                        className={`w-full p-4 rounded-xl border-2 transition-all ${
-                          topic === t.value
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-lg"
-                            : "border-gray-200 dark:border-gray-800 hover:border-blue-300 dark:hover:border-blue-700"
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <span className="text-2xl">{t.emoji}</span>
-                          <span className="text-sm font-medium">{t.value}</span>
-                        </div>
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5">
+              <Label icon={Languages} aside={meaning ? <span className="flex items-center gap-1 text-[10px] text-stone-400 dark:text-stone-500"><Wand2 className="w-2.5 h-2.5" strokeWidth={1.5} />auto-filled</span> : null}>
+                Vietnamese Meaning
+              </Label>
+              <StoneInput value={meaning} onChange={setMeaning} placeholder="Meaning appears automatically..." />
+            </div>
 
-              {/* Error Message */}
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5 flex flex-col gap-3 flex-1">
               <AnimatePresence>
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-sm"
-                  >
-                    {error}
+                {wordType === "word" && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.28 }}>
+                    <Label icon={Languages}>Transcription</Label>
+                    <StoneInput value={transcription} onChange={setTranscription} placeholder="Phonetic..." />
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Submit Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-              >
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!english || !meaning || saving || success}
-                  className="w-full h-14 text-lg font-semibold bg-linear-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  <AnimatePresence mode="wait">
-                    {success ? (
-                      <motion.div
-                        key="success"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        {wordType === "phrase" ? "Phrase" : "Word"} Added Successfully!
-                      </motion.div>
-                    ) : saving ? (
-                      <motion.div
-                        key="saving"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Adding {wordType === "phrase" ? "Phrase" : "Word"}...
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="add"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-2"
-                      >
-                        Add {wordType === "phrase" ? "Phrase" : "Word"}
-                        <ArrowRight className="w-5 h-5" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Button>
-              </motion.div>
-
-              {/* Stats Badge */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="flex justify-center gap-2 flex-wrap"
-              >
-                <Badge variant="outline" className="px-4 py-2">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  AI-powered translation
-                </Badge>
-                {wordType === "phrase" && (
-                  <Badge variant="outline" className="px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-                    <MessageSquare className="w-3 h-3 mr-1 text-blue-500" />
-                    Multi-word phrase
-                  </Badge>
-                )}
-                {example && (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                    <Badge
-                      variant="outline"
-                      className="px-4 py-2 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800"
-                    >
-                      <Lightbulb className="w-3 h-3 mr-1 text-purple-500" />
-                      With example
-                    </Badge>
+              <AnimatePresence>
+                {wordType === "word" && availableParts.length > 0 && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.28 }}>
+                    <Label icon={Tag}>Part of Speech</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableParts.map((part, i) => (
+                        <button key={i} onClick={() => setSelectedPart(i)}
+                          className={`text-[10px] uppercase tracking-[1.5px] px-2.5 py-1 rounded-full border transition-all ${selectedPart === i ? "bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100 text-white dark:text-stone-900" : "border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:border-stone-400"}`}>
+                          {part.partOfSpeech}
+                        </button>
+                      ))}
+                    </div>
                   </motion.div>
                 )}
-              </motion.div>
+              </AnimatePresence>
+              <div className="flex-1 flex flex-col justify-end">
+                <WordStatsPanel word={english} meaning={meaning} partOfSpeech={currentPartOfSpeech} definition={currentDefinition} transcription={transcription} />
+              </div>
             </div>
-          </Card>
-        </motion.div>
+          </motion.div>
+
+          {/* MIDDLE: example + topic + submit */}
+          <motion.div {...fadeUp(0.08)} className="flex flex-col gap-3 overflow-hidden">
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5 flex flex-col flex-1">
+              <Label icon={FileText}
+                aside={<button onClick={generateExample} disabled={!english || !meaning || loadingExample} className="flex items-center gap-1 text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-colors">{loadingExample ? <Loader2 className="w-2.5 h-2.5 animate-spin" strokeWidth={1.5} /> : <Wand2 className="w-2.5 h-2.5" strokeWidth={1.5} />}{loadingExample ? "Generating..." : "AI Generate"}</button>}>
+                Example Sentence
+              </Label>
+              <div className="flex-1"><StoneTextarea value={example} onChange={setExample} placeholder="Click 'AI Generate' or write your own..." /></div>
+              {example && english && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                  <p className="text-[10px] uppercase tracking-[1.5px] text-stone-300 dark:text-stone-600 mb-1">Preview</p>
+                  <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                    {example.split(new RegExp(`(${english})`, "gi")).map((part, i) =>
+                      part.toLowerCase() === english.toLowerCase()
+                        ? <mark key={i} className="bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded px-0.5 not-italic">{part}</mark>
+                        : part
+                    )}
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3.5">
+              <Label icon={Tag}>Topic</Label>
+              <div className="grid grid-cols-6 gap-1">
+                {TOPICS.map(t => (
+                  <button key={t.value} onClick={() => setTopic(t.value)}
+                    className={`py-2 rounded-lg border text-center transition-all ${topic === t.value ? "bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100" : "border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500"}`}>
+                    <p className={`text-[10px] font-light leading-none mb-0.5 ${topic === t.value ? "text-white dark:text-stone-900" : "text-stone-700 dark:text-stone-300"}`}>{t.value}</p>
+                    <p className={`text-[9px] ${topic === t.value ? "text-stone-400 dark:text-stone-600" : "text-stone-300 dark:text-stone-600"}`}>{t.labelJa}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <AnimatePresence>{error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-xs text-red-500 dark:text-red-400 px-1">{error}</motion.p>}</AnimatePresence>
+
+            <button onClick={handleSubmit} disabled={!english || !meaning || saving || success}
+              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-light tracking-wide transition-all disabled:opacity-40 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300">
+              <AnimatePresence mode="wait">
+                {success ? <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-2"><Check className="w-4 h-4" strokeWidth={1.5} />{wordType === "phrase" ? "Phrase" : "Word"} Added</motion.span>
+                  : saving ? <motion.span key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />Saving...</motion.span>
+                  : <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2"><Plus className="w-4 h-4" strokeWidth={1.5} />Add {wordType === "phrase" ? "Phrase" : "Word"}<ArrowRight className="w-3.5 h-3.5 ml-1" strokeWidth={1.5} /></motion.span>}
+              </AnimatePresence>
+            </button>
+          </motion.div>
+
+          {/* RIGHT: image + memory tip */}
+          <motion.div {...fadeUp(0.12)} className="flex flex-col gap-3 overflow-hidden">
+            <WordImagePanel word={english} meaning={meaning} />
+            <MemoryTipPanel word={english} meaning={meaning} example={example} />
+          </motion.div>
+        </div>
       </div>
     </AuthGuard>
   );

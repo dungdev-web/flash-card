@@ -2,90 +2,130 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { ArrowRight, BookOpen, Briefcase, Monitor, GraduationCap } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
+
+const SHOJI_DELAY = 1.15;
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const, delay: SHOJI_DELAY + delay },
+});
+
 const topics = [
   {
     name: "Daily",
+    labelJa: "日常",
     slug: "daily",
     description: "Common words for everyday conversations",
-    color: "from-blue-400 to-blue-600",
+    icon: BookOpen,
+    num: "01",
   },
   {
     name: "Business",
+    labelJa: "仕事",
     slug: "Business",
     description: "Vocabulary for work and meetings",
-    color: "from-emerald-400 to-emerald-600",
+    icon: Briefcase,
+    num: "02",
   },
   {
     name: "Technology",
+    labelJa: "技術",
     slug: "Technology",
     description: "Tech, IT, and software terms",
-    color: "from-purple-400 to-purple-600",
+    icon: Monitor,
+    num: "03",
   },
   {
     name: "IELTS",
+    labelJa: "試験",
     slug: "Ielts",
     description: "Academic & exam-focused vocabulary",
-    color: "from-pink-400 to-pink-600",
+    icon: GraduationCap,
+    num: "04",
   },
 ];
+
+function KumikoLine() {
+  return (
+    <div className="flex items-center gap-3 my-8">
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+      <div className="w-1 h-1 rounded-full bg-stone-400 dark:bg-stone-500" />
+      <div className="flex-1 h-px bg-stone-200 dark:bg-stone-700" />
+    </div>
+  );
+}
 
 export default function TopicPage() {
   return (
     <AuthGuard>
-    <div className="min-h-screen px-6 py-10">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12"
-      >
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-          Choose a Topic 📚
-        </h1>
-        <p className="text-gray-500 mt-3">
-          Pick a topic and start learning with flashcards
-        </p>
-      </motion.div>
+      <div className="max-w-3xl mx-auto px-4 py-8">
 
-      {/* Topic Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-        {topics.map((topic, index) => (
-          <motion.div
-            key={topic.slug}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -10, scale: 1.05 }}
-          >
-            <Link href={`/dashboard/topics/${topic.slug}`}>
-              <Card className="h-full cursor-pointer rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                {/* Glow */}
-                <div
-                  className={`absolute inset-0 opacity-20 bg-gradient-to-br ${topic.color}`}
-                />
+        {/* Header */}
+        <motion.div {...fadeUp(0)} className="mb-10">
+          <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-1">
+            トピック · Topics
+          </p>
+          <h1 className="text-3xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">
+            Choose a Topic
+          </h1>
+        </motion.div>
 
-                <div className="relative z-10">
-                  <h2 className="text-2xl font-semibold mb-2">
-                    {topic.name}
-                  </h2>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {topic.description}
-                  </p>
-                  <Badge
-                    className={`bg-gradient-to-r ${topic.color} text-white`}
-                  >
-                    Start learning →
-                  </Badge>
-                </div>
-              </Card>
-            </Link>
-          </motion.div>
-        ))}
+        {/* Topic list */}
+        <div className="space-y-3">
+          {topics.map((topic, idx) => {
+            const Icon = topic.icon;
+            return (
+              <motion.div key={topic.slug} {...fadeUp(0.06 + idx * 0.07)}>
+                <Link href={`/dashboard/topics/${topic.slug}`}>
+                  <div className="group flex items-center gap-5 p-5 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:border-stone-400 dark:hover:border-stone-500 transition-all duration-200 cursor-pointer">
+
+                    {/* Icon box */}
+                    <div className="w-11 h-11 rounded-xl border border-stone-200 dark:border-stone-700 flex items-center justify-center flex-shrink-0 group-hover:bg-stone-900 dark:group-hover:bg-stone-100 group-hover:border-stone-900 dark:group-hover:border-stone-100 transition-all duration-200">
+                      <Icon className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:text-white dark:group-hover:text-stone-900 transition-colors duration-200" strokeWidth={1.5} />
+                    </div>
+
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-0.5">
+                        <span className="text-base font-light text-stone-800 dark:text-stone-100">
+                          {topic.name}
+                        </span>
+                        <span className="text-[10px] text-stone-400 dark:text-stone-500 tracking-widest">
+                          {topic.labelJa}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 font-light truncate">
+                        {topic.description}
+                      </p>
+                    </div>
+
+                    {/* Number + arrow */}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-[11px] tabular-nums text-stone-300 dark:text-stone-600">
+                        {topic.num}
+                      </span>
+                      <ArrowRight
+                        className="w-4 h-4 text-stone-300 dark:text-stone-600 group-hover:text-stone-700 dark:group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all duration-200"
+                        strokeWidth={1.5}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <KumikoLine />
+
+        {/* Footer note */}
+        <motion.p {...fadeUp(0.35)} className="text-center text-[11px] uppercase tracking-[2px] text-stone-300 dark:text-stone-600">
+          選んでください — Pick one to begin
+        </motion.p>
+
       </div>
-    </div>
     </AuthGuard>
   );
 }

@@ -73,14 +73,11 @@ Context/Topic: ${topic}
 
 Requirements:
 ${getPromptGuidance()}
-- ONE sentence only (no multiple sentences)
-- Simple, conversational English (A2-B1 level)
-- Natural usage that a native speaker would say
-- Context should relate to: ${topic}
-- NO explanations, NO quotation marks around the word
-- Just return the sentence directly
-
-Example format: "I love reading books in my free time."
+-One sentence only, no quotation marks, no explanations, 1000 letters.
+-Style: Simple, conversational English (A2-C1 level), natural native usage.
+-Context: ${topic}.
+-Format: Return the English sentence first, followed immediately by its full Vietnamese translation in parentheses.
+-Example: I love reading books in my free time (Tôi thích đọc sách vào thời gian rảnh).
 `;
 
     const result = await model.generateContent(prompt);
@@ -93,7 +90,7 @@ Example format: "I love reading books in my free time."
     let cleanedExample = text
       ?.trim()
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
-      .split('\n')[0] // Get only first line (alternative to /\n.*$/s)
+      .split("\n")[0] // Get only first line (alternative to /\n.*$/s)
       .trim();
 
     return NextResponse.json({

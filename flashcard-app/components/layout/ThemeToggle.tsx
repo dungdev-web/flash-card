@@ -13,7 +13,6 @@ export default function ThemeToggle() {
 
   return (
     <div className="flex items-center gap-2">
-      🌙
       <Switch
         checked={theme === "dark"}
         onCheckedChange={() =>

@@ -1,312 +1,181 @@
 "use client";
-import { Button } from "@/components/ui/button";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Word } from "@/app/types/word";
-import { Sparkles, Volume2, Check, BookOpen } from "lucide-react";
+import { Check, Sparkles, Volume2 } from "lucide-react";
+
+const SHOJI_DELAY = 1.15;
 
 type Props = {
   word: Word;
   onToggleLearned: (id: string, learned: boolean) => void;
 };
 
+const POS_COLORS: Record<string, string> = {
+  noun:         "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  verb:         "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  adjective:    "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  adverb:       "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  phrase:       "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  preposition:  "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  conjunction:  "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  pronoun:      "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+  interjection: "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300",
+};
+
 export default function FlashCard({ word, onToggleLearned }: Props) {
   const [flip, setFlip] = useState(false);
-  const [femaleVoice, setFemaleVoice] = useState<SpeechSynthesisVoice | null>(
-    null,
-  );
+  const [voice, setVoice] = useState<SpeechSynthesisVoice | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const synth = window.speechSynthesis;
-
-    const loadVoices = () => {
+    const load = () => {
       const voices = synth.getVoices();
-
-      // 🔥 Ưu tiên giọng nữ tiếng Anh
-      const preferred =
-        voices.find(
-          (v) => v.lang === "en-US" && v.name.toLowerCase().includes("female"),
-        ) ||
-        voices.find(
-          (v) =>
-            v.lang === "en-US" &&
-            (v.name.toLowerCase().includes("zira") || // Windows
-              v.name.toLowerCase().includes("samantha")), // macOS
-        ) ||
-        voices.find((v) => v.lang === "en-US");
-
-      setFemaleVoice(preferred || null);
+      setVoice(
+        voices.find((v) => v.lang === "en-US" && v.name.toLowerCase().includes("samantha")) ||
+        voices.find((v) => v.lang === "en-US" && v.name.toLowerCase().includes("zira")) ||
+        voices.find((v) => v.lang === "en-US") ||
+        null
+      );
     };
-
-    loadVoices();
-    synth.onvoiceschanged = loadVoices;
+    load();
+    synth.onvoiceschanged = load;
   }, []);
 
   const speak = (text: string) => {
     if (typeof window === "undefined") return;
-
     const synth = window.speechSynthesis;
     synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = 0.9;
-    utterance.pitch = 1.2; // 👩 giọng nữ cao hơn
-    utterance.volume = 1;
-
-    if (femaleVoice) {
-      utterance.voice = femaleVoice;
-    }
-
-    synth.speak(utterance);
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    u.rate = 0.88;
+    u.pitch = 1.1;
+    if (voice) u.voice = voice;
+    synth.speak(u);
   };
 
-  // 🆕 Handler riêng cho card click
-  const handleCardClick = () => {
-    setFlip(!flip);
-  };
-
-  // 🆕 Get color cho part of speech badge
-  const getPartOfSpeechColor = (pos: string) => {
-    const lower = pos?.toLowerCase() || "";
-    if (lower === "noun") return "from-blue-400 to-blue-600";
-    if (lower === "verb") return "from-green-400 to-green-600";
-    if (lower === "adjective") return "from-yellow-400 to-orange-500";
-    if (lower === "adverb") return "from-pink-400 to-pink-600";
-    if (lower === "phrase") return "from-purple-400 to-purple-600";
-    if (lower === "preposition") return "from-teal-400 to-teal-600";
-    if (lower === "conjunction") return "from-indigo-400 to-indigo-600";
-    if (lower === "pronoun") return "from-cyan-400 to-cyan-600";
-    if (lower === "interjection") return "from-red-400 to-red-600";
-    return "from-gray-400 to-gray-600";
-  };
+  const posClass = POS_COLORS[(word.partOfSpeech || "").toLowerCase()] ?? POS_COLORS["noun"];
 
   return (
     <motion.div
-      className="perspective cursor-pointer"
-      onClick={handleCardClick}
-      whileHover={{ scale: 1.08, y: -8 }}
-      whileTap={{ scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="cursor-pointer"
+      style={{ perspective: 1200 }}
+      onClick={() => setFlip((f) => !f)}
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 300, damping: 22 }}
     >
       <motion.div
         className="relative w-80 h-52"
         animate={{ rotateY: flip ? 180 : 0 }}
-        transition={{
-          duration: 0.7,
-          type: "spring",
-          stiffness: 100,
-          damping: 15,
-        }}
+        transition={{ duration: 0.65, type: "spring", stiffness: 90, damping: 16 }}
         style={{ transformStyle: "preserve-3d" }}
       >
-        {/* Glow Effect */}
-        <motion.div
-          className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-30"
-          animate={{
-            opacity: flip ? 0.5 : 0.3,
-          }}
-          transition={{ duration: 0.5 }}
-        />
 
-        {/* BUTTON UPDATE LEARNED */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-          className="absolute -top-3 -right-3 z-20"
-        >
-          <motion.div
-            whileHover={{ scale: 1.2, rotate: 15 }}
+        {/* ── Learned toggle ── */}
+        <div className="absolute -top-3 -right-3 z-20" style={{ backfaceVisibility: "hidden" }}>
+          <motion.button
+            onClick={(e) => { e.stopPropagation(); onToggleLearned(word.id!, !word.learned); }}
+            whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.9 }}
+            className={`w-9 h-9 rounded-full flex items-center justify-center border transition-colors shadow-sm
+              ${word.learned
+                ? "bg-stone-900 dark:bg-stone-100 border-stone-900 dark:border-stone-100"
+                : "bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-600"}`}
           >
-            <Button
-              size="sm"
-              className={`rounded-full w-10 h-10 p-0 shadow-lg ${
-                word.learned
-                  ? "bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600"
-                  : "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleLearned(word.id!, !word.learned);
-              }}
-            >
-              <AnimatePresence mode="wait">
-                {word.learned ? (
-                  <motion.div
-                    key="learned"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: 180 }}
-                  >
-                    <Check className="w-5 h-5 text-white" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="not-learned"
-                    initial={{ scale: 0, rotate: 180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: -180 }}
-                  >
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Button>
-          </motion.div>
-        </motion.div>
+            <AnimatePresence mode="wait">
+              {word.learned ? (
+                <motion.div key="on" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Check className="w-4 h-4 text-white dark:text-stone-900" />
+                </motion.div>
+              ) : (
+                <motion.div key="off" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Sparkles className="w-4 h-4 text-stone-400" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </div>
 
-        {/* FRONT */}
-        <Card className="absolute inset-0 flex flex-col items-center justify-center backface-hidden shadow-2xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-blue-950 border-2 border-blue-100 dark:border-blue-900 rounded-2xl overflow-hidden">
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 dark:bg-blue-800 rounded-full blur-3xl opacity-20 -mr-16 -mt-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200 dark:bg-purple-800 rounded-full blur-3xl opacity-20 -ml-12 -mb-12" />
+        {/* ── FRONT ── */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 overflow-hidden"
+          style={{ backfaceVisibility: "hidden" }}
+        >
+          {/* Kumiko corner accent */}
+          <div className="absolute top-0 left-0 w-12 h-12 border-r border-b border-stone-100 dark:border-stone-800 rounded-br-2xl" />
+          <div className="absolute bottom-0 right-0 w-12 h-12 border-l border-t border-stone-100 dark:border-stone-800 rounded-tl-2xl" />
 
-          {/* CONTENT */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="z-10 flex flex-col items-center gap-2"
-          >
-            {/* WORD */}
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+          <div className="flex flex-col items-center gap-2 z-10 px-6 text-center">
+            <h2 className="text-4xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">
               {word.english}
             </h2>
 
-            {/* PHONETIC + SOUND */}
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-stone-400 dark:text-stone-500">
               {word.phonetic && (
-                <span className="text-sm italic">/{word.phonetic}/</span>
+                <span className="text-xs font-light tracking-wide">/{word.phonetic}/</span>
               )}
-
-              <motion.button
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  speak(word.english);
-                }}
-                className="p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              <button
+                onClick={(e) => { e.stopPropagation(); speak(word.english); }}
+                className="p-1 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
               >
-                <Volume2 className="w-4 h-4 text-blue-500" />
-              </motion.button>
+                <Volume2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
             </div>
 
-            {/* 🆕 PART OF SPEECH + TOPIC */}
-            <div className="flex items-center gap-2 mt-2">
-              {/* Part of Speech Badge */}
+            <div className="flex items-center gap-2 mt-1">
               {word.partOfSpeech && (
-                <Badge 
-                  className={`bg-gradient-to-r ${getPartOfSpeechColor(word.partOfSpeech)} text-white px-3 py-1 text-xs font-semibold shadow flex items-center gap-1`}
-                >
-                  <BookOpen className="w-3 h-3" />
+                <span className={`text-[10px] uppercase tracking-[1.5px] px-2 py-0.5 rounded-full ${posClass}`}>
                   {word.partOfSpeech}
-                </Badge>
+                </span>
               )}
-
-              {/* TOPIC Badge */}
-              <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 text-xs font-semibold shadow">
+              <span className="text-[10px] uppercase tracking-[1.5px] px-2 py-0.5 rounded-full border border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500">
                 {word.topic}
-              </Badge>
+              </span>
             </div>
-          </motion.div>
+          </div>
 
-          {/* HINT */}
-          <p className="absolute bottom-4 text-xs text-gray-400">
-            Click to reveal meaning ✨
+          <p className="absolute bottom-4 text-[10px] tracking-[2px] uppercase text-stone-300 dark:text-stone-600">
+            tap to reveal
           </p>
-        </Card>
+        </div>
 
-        {/* BACK */}
-        <Card
-          className="absolute inset-0 flex flex-col items-center justify-center backface-hidden shadow-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border-2 border-purple-100 dark:border-purple-900 rounded-2xl overflow-hidden"
-          style={{ transform: "rotateY(180deg)" }}
+        {/* ── BACK ── */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60 overflow-hidden"
+          style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
         >
-          {/* Decorative circles */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-purple-200 dark:bg-purple-800 rounded-full blur-3xl opacity-20 -ml-16 -mt-16" />
-          <div className="absolute bottom-0 right-0 w-24 h-24 bg-pink-200 dark:bg-pink-800 rounded-full blur-3xl opacity-20 -mr-12 -mb-12" />
+          <div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-stone-200 dark:border-stone-700 rounded-bl-2xl" />
+          <div className="absolute bottom-0 left-0 w-12 h-12 border-r border-t border-stone-200 dark:border-stone-700 rounded-tr-2xl" />
 
           <motion.div
-            className="px-8 leading-1.5 text-center z-10"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: flip ? 1 : 0,
-              scale: flip ? 1 : 0.8,
-            }}
-            transition={{ delay: flip ? 0.4 : 0, duration: 0.5 }}
+            className="flex flex-col items-center gap-3 px-8 text-center z-10"
+            animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : 8 }}
+            transition={{ delay: flip ? 0.35 : 0, duration: 0.4 }}
           >
-            {/* 🆕 PART OF SPEECH (Back side) */}
-            {word.partOfSpeech && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : -5 }}
-                transition={{ delay: 0.5 }}
-                className="mb-3"
-              >
-                <Badge 
-                  className={`bg-gradient-to-r ${getPartOfSpeechColor(word.partOfSpeech)} text-white px-3 py-1 text-xs font-semibold shadow-lg flex items-center gap-1 mx-auto w-fit`}
-                >
-                  <BookOpen className="w-3 h-3" />
-                  {word.partOfSpeech}
-                </Badge>
-              </motion.div>
-            )}
-
-            {/* MEANING */}
-            <motion.h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-light tracking-tight text-stone-800 dark:text-stone-100">
               {word.meaning}
-            </motion.h2>
+            </h2>
 
-            {/* ✅ EXAMPLE */}
             {word.example && (
-              <motion.p
-                className="mt-4 text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : 10 }}
-                transition={{ delay: 0.6 }}
-              >
-                "{word.example}"
-              </motion.p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 italic leading-relaxed">
+                &ldquo;{word.example}&rdquo;
+              </p>
             )}
 
-            {/* 🔊 LISTEN EXAMPLE */}
             {word.example && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: flip ? 1 : 0, y: flip ? 0 : 5 }}
-                transition={{ delay: 0.7 }}
-                className="mt-3"
+              <button
+                onClick={(e) => { e.stopPropagation(); speak(word.example!); }}
+                className="flex items-center gap-1.5 text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors mt-1"
               >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto py-1.5 px-3 text-xs text-purple-500 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation(); // 🚫 Chặn event bubble lên card
-                    e.preventDefault(); // 🚫 Chặn default behavior
-                    speak(word.example!);
-                  }}
-                >
-                  <Volume2 className="w-3 h-3 mr-1" />
-                  Listen example
-                </Button>
-              </motion.div>
+                <Volume2 className="w-3 h-3" strokeWidth={1.5} />
+                Listen
+              </button>
             )}
           </motion.div>
+        </div>
 
-          {/* Hint */}
-          {/* <motion.p
-            className="text-xs text-gray-400 absolute bottom-4"
-            animate={{ opacity: flip ? 0.6 : 0 }}
-          >
-            Click to flip back 🔄
-          </motion.p> */}
-        </Card>
       </motion.div>
     </motion.div>
   );

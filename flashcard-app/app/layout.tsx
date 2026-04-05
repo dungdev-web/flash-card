@@ -1,6 +1,8 @@
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import Navbar from "@/components/layout/Navbar";
+import { ShojiProvider } from "@/components/providers/ShojiContext";
+import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
+import AuthenticatedExtras from "@/components/providers/AuthenticatedExtras";
 
 export default function RootLayout({
   children,
@@ -9,10 +11,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="">
         <ThemeProvider>
-          <Navbar />
-          <main className="p-6">{children}</main>
+          <ShojiProvider>
+            <ConditionalNavbar />
+            <main className="">{children}</main>
+             <AuthenticatedExtras />
+          </ShojiProvider>
         </ThemeProvider>
       </body>
     </html>
