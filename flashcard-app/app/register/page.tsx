@@ -161,9 +161,9 @@ function StoneInput({ type = "text", value, onChange, placeholder, icon: Icon, v
 }) {
   return (
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 dark:text-stone-600" strokeWidth={1.5} />
+      <Icon className="absolute text-black left-3 top-1/2 -translate-y-1/2 w-4 h-4 " strokeWidth={1.5} />
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full h-11 pl-10 pr-9 text-sm bg-white/70 dark:bg-stone-900/70 backdrop-blur-sm border border-stone-200/80 dark:border-stone-700 rounded-xl text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 focus:bg-white dark:focus:bg-stone-900 transition-all"
+        className="w-full h-11 pl-10 pr-9 text-sm bg-white/70  backdrop-blur-sm border border-stone-200/80  rounded-xl text-stone-800  placeholder:text-stone-300  focus:outline-none focus:border-stone-400    transition-all"
       />
       <AnimatePresence>
         {valid && (
@@ -230,7 +230,7 @@ export default function RegisterPage() {
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-[2] w-full max-w-sm bg-white/50 dark:bg-stone-900/50 backdrop-blur-lg border border-white/70 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
+          className="relative z-[2] w-full max-w-sm bg-white/50  backdrop-blur-lg border border-white/70  rounded-2xl px-8 py-10 shadow-sm"
         >
           <div className="lg:hidden mb-8">
             <p className="text-[10px] uppercase tracking-[4px] text-stone-400 dark:text-stone-500 mb-0.5">学習アプリ</p>
@@ -239,7 +239,7 @@ export default function RegisterPage() {
 
           <motion.div {...fadeUp(0)} className="mb-8">
             <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-1">登録 · Create account</p>
-            <h1 className="text-3xl font-extralight tracking-tight text-stone-800 dark:text-stone-100">Get started</h1>
+            <h1 className="text-3xl font-extralight tracking-tight text-stone-800 ">Get started</h1>
           </motion.div>
 
           <motion.div {...fadeUp(0.06)} className="space-y-3 mb-3">
@@ -268,7 +268,7 @@ export default function RegisterPage() {
 
           <motion.div {...fadeUp(0.12)} className="mt-5">
             <button onClick={handleRegister} disabled={loading || passwordMismatch}
-              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-light tracking-wide transition-all disabled:opacity-40 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300">
+              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-light tracking-wide transition-all disabled:opacity-40 bg-stone-900  text-white  hover:bg-stone-700 ">
               {loading
                 ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
                 : <><span>Create account</span><ArrowRight className="w-4 h-4" strokeWidth={1.5} /></>}
@@ -284,7 +284,7 @@ export default function RegisterPage() {
             <div className="flex items-center justify-between">
               <p className="text-xs text-stone-400 dark:text-stone-500">
                 Đã có tài khoản?{" "}
-                <Link href="/login" className="text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 transition-colors underline underline-offset-2">
+                <Link href="/login" className="text-stone-700  hover:text-stone-900  transition-colors underline underline-offset-3">
                   Đăng nhập
                 </Link>
               </p>
