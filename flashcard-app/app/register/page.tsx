@@ -34,7 +34,7 @@ function AnimatedBackground() {
       life: number; maxLife: number;
     }
 
-    const KANJI = ["桜","語","学","花","心","道","水","山","風","光","空","夢","愛","詩","書","旅","時","月","星","森","海","鳥","音","色","笑","友","力","幸","新","知","美","命","願","志","魂","自由","平和","希望","勇気","誠","信","絆","感謝","挑戦","成長","未来","歴史","文化","伝統","芸術","自然","人生","哲学","精神","調和","運命","奇跡","情熱","努力","成功","挑戦","冒険","創造","変化","挑戦","挑戦","挑戦" ];
+    const KANJI = ["桜","語","学","花","心","道","水","山","風","光","空","夢","愛","詩","書","旅","時","命","力","友","笑","音","色","月","星","森","海","鳥","雨","雪","葉","森","空","海","川","石","火","風","花","月","山","川","森","空","海","川","石","火","風","花","月","山","川","森","空","海","川","石","火","風","花","月"];
     const particles: Particle[] = [];
 
     const spawn = () => {
@@ -73,8 +73,8 @@ function AnimatedBackground() {
       ctx.fillStyle = "#faf8f5";
       ctx.fillRect(0, 0, W, H);
 
-      ctx.strokeStyle = "rgba(180,160,140,0.07)";
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = "rgba(140,110,90,0.18)";
+      ctx.lineWidth = 1.0;
       const g = 48;
       for (let x = 0; x < W; x += g) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
       for (let y = 0; y < H; y += g) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
@@ -95,7 +95,7 @@ function AnimatedBackground() {
         if (p.life >= p.maxLife || p.y < -80) { particles.splice(i, 1); continue; }
 
         ctx.save();
-        ctx.globalAlpha = p.alpha * 0.16;
+        ctx.globalAlpha = p.alpha * 0.55;
 
         if (p.type === "kanji") {
           ctx.font = `300 ${p.size}px serif`;
@@ -106,13 +106,13 @@ function AnimatedBackground() {
           ctx.rotate(p.angle * 0.25);
           ctx.fillText(p.char, 0, 0);
         } else if (p.type === "dot") {
-          ctx.fillStyle = "#c8a89a";
+          ctx.fillStyle = "#a06040";
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.strokeStyle = "#c0a898";
-          ctx.lineWidth = 0.7;
+          ctx.strokeStyle = "#905030";
+          ctx.lineWidth = 1.2;
           ctx.beginPath();
           const dx = Math.cos(p.angle) * p.len * 0.5;
           const dy = Math.sin(p.angle) * p.len * 0.5;
@@ -133,9 +133,9 @@ function AnimatedBackground() {
       for (const c of circles) {
         const pulse = Math.sin(t + c.phase) * 0.5 + 0.5;
         ctx.save();
-        ctx.globalAlpha = 0.045 + pulse * 0.02;
-        ctx.strokeStyle = "#a89080";
-        ctx.lineWidth = 0.5;
+        ctx.globalAlpha = 0.18 + pulse * 0.1;
+        ctx.strokeStyle = "#8b5e3c";
+        ctx.lineWidth = 1.0;
         ctx.beginPath();
         ctx.arc(c.cx, c.cy, c.r + pulse * 18, 0, Math.PI * 2);
         ctx.stroke();
@@ -161,7 +161,7 @@ function StoneInput({ type = "text", value, onChange, placeholder, icon: Icon, v
 }) {
   return (
     <div className="relative">
-      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-600" strokeWidth={1.5} />
+      <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 dark:text-stone-600" strokeWidth={1.5} />
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className="w-full h-11 pl-10 pr-9 text-sm bg-white/70 dark:bg-stone-900/70 backdrop-blur-sm border border-stone-200/80 dark:border-stone-700 rounded-xl text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 focus:bg-white dark:focus:bg-stone-900 transition-all"
       />
@@ -218,49 +218,19 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-
-      {/* Left panel */}
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-stone-900 dark:bg-stone-950 px-12 py-14 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 39px,#fff 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,#fff 40px)" }} />
-        <div className="absolute top-0 right-0 w-32 h-32 border-b border-l border-stone-700 rounded-bl-3xl" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 border-t border-r border-stone-700 rounded-tr-3xl" />
-        <div className="relative z-10">
-          <p className="text-[10px] uppercase tracking-[4px] text-stone-600 mb-1">学習アプリ</p>
-          <p className="text-xl font-extralight tracking-[3px] text-white/80">FlashCard</p>
-        </div>
-        <div className="relative z-10">
-          <p className="text-4xl font-extralight text-white/90 leading-tight tracking-tight mb-4">始まりは<br />一歩から</p>
-          <p className="text-sm font-light text-stone-500 tracking-wide">Every journey begins with one step.</p>
-          <div className="mt-8 h-px w-12 bg-stone-700" />
-          <div className="mt-8 space-y-3">
-            {["AI-powered vocabulary generation","Sakura — your personal tutor","Flashcards with spaced repetition"].map(f => (
-              <div key={f} className="flex items-center gap-3">
-                <div className="w-1 h-1 rounded-full bg-stone-600 flex-shrink-0" />
-                <p className="text-xs text-stone-500 font-light">{f}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="relative z-10">
-          <p className="text-[10px] uppercase tracking-[3px] text-stone-700">桜 · Sakura AI</p>
-        </div>
-      </motion.div>
-
-      {/* Right panel with live background */}
+{/* Right panel with live background */}
       <div className="flex-1 relative flex items-center justify-center px-6 py-12 overflow-hidden">
         <AnimatedBackground />
 
         {/* Radial vignette — keeps edges soft so background doesn't overwhelm form */}
         <div className="absolute inset-0 z-[1] pointer-events-none"
-          style={{ background: "radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, rgba(250,248,245,0.6) 100%)" }} />
+          style={{ background: "radial-gradient(ellipse 60% 60% at 50% 50%, transparent 20%, rgba(240,235,227,0.45) 100%)" }} />
 
         {/* Glass card */}
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-[2] w-full max-w-sm bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-white/80 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
+          className="relative z-[2] w-full max-w-sm bg-white/50 dark:bg-stone-900/50 backdrop-blur-lg border border-white/70 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
         >
           <div className="lg:hidden mb-8">
             <p className="text-[10px] uppercase tracking-[4px] text-stone-400 dark:text-stone-500 mb-0.5">学習アプリ</p>
@@ -323,6 +293,36 @@ export default function RegisterPage() {
           </motion.div>
         </motion.div>
       </div>
+      {/* Left panel */}
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-stone-900 dark:bg-stone-950 px-12 py-14 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "repeating-linear-gradient(0deg,transparent,transparent 39px,#fff 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,#fff 40px)" }} />
+        <div className="absolute top-0 right-0 w-32 h-32 border-b border-l border-stone-700 rounded-bl-3xl" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 border-t border-r border-stone-700 rounded-tr-3xl" />
+        <div className="relative z-10">
+          <p className="text-[10px] uppercase tracking-[4px] text-stone-600 mb-1">学習アプリ</p>
+          <p className="text-xl font-extralight tracking-[3px] text-white/80">FlashCard</p>
+        </div>
+        <div className="relative z-10">
+          <p className="text-4xl font-extralight text-white/90 leading-tight tracking-tight mb-4">始まりは<br />一歩から</p>
+          <p className="text-sm font-light text-stone-500 tracking-wide">Every journey begins with one step.</p>
+          <div className="mt-8 h-px w-12 bg-stone-700" />
+          <div className="mt-8 space-y-3">
+            {["AI-powered vocabulary generation","Sakura — your personal tutor","Flashcards with spaced repetition"].map(f => (
+              <div key={f} className="flex items-center gap-3">
+                <div className="w-1 h-1 rounded-full bg-stone-600 flex-shrink-0" />
+                <p className="text-xs text-stone-500 font-light">{f}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10">
+          <p className="text-[10px] uppercase tracking-[3px] text-stone-700">桜 · Sakura AI</p>
+        </div>
+      </motion.div>
+
+      
     </div>
   );
 }

@@ -22,11 +22,12 @@ const fadeUp = (delay = 0) => ({
 
 const TOPICS = [
   { value: "Daily",  labelJa: "日常" },
-  { value: "Work",   labelJa: "仕事" },
   { value: "Travel", labelJa: "旅行" },
   { value: "Food",   labelJa: "食事" },
-  { value: "Tech",   labelJa: "技術" },
+  { value: "Technology",   labelJa: "技術" },
   { value: "Health", labelJa: "健康" },
+  { value: "Business", labelJa: "ビジネス" },
+  { value: "IELTS", labelJa: "試験" },
 ];
 
 interface MeaningData {
