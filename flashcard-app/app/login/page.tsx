@@ -253,7 +253,7 @@ export default function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-[2] w-full max-w-sm bg-white/50  backdrop-blur-lg border border-white/70 dark:border-stone-700/60 rounded-2xl px-8 py-10 shadow-sm"
+          className="relative z-[2] w-full max-w-sm bg-white/50  backdrop-blur-lg border border-white/70  rounded-2xl px-8 py-10 shadow-sm"
         >
           {/* Mobile wordmark */}
           <div className="lg:hidden mb-8">
