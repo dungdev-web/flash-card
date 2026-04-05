@@ -2,14 +2,27 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Briefcase, Monitor, GraduationCap } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Briefcase,
+  Monitor,
+  GraduationCap,
+  Citrus,
+  Utensils,
+  Plane,
+} from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 const SHOJI_DELAY = 1.15;
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const, delay: SHOJI_DELAY + delay },
+  transition: {
+    duration: 0.5,
+    ease: [0.22, 1, 0.36, 1] as const,
+    delay: SHOJI_DELAY + delay,
+  },
 });
 
 const topics = [
@@ -21,6 +34,7 @@ const topics = [
     icon: BookOpen,
     num: "01",
   },
+
   {
     name: "Business",
     labelJa: "仕事",
@@ -45,6 +59,30 @@ const topics = [
     icon: GraduationCap,
     num: "04",
   },
+  {
+    name: "Travel",
+    labelJa: "旅行",
+    slug: "travel",
+    description: "Airport, directions, dining, and more",
+    icon: Plane,
+    num: "05",
+  },
+  {
+    name: "Food",
+    labelJa: "食べ物",
+    slug: "food",
+    description: "Fruits, dishes, and culinary terms",
+    icon: Utensils,
+    num: "06",
+  },
+  {
+    name: "Health",
+    labelJa: "健康",
+    slug: "health",
+    description: "Body parts, symptoms, and medical terms",
+    icon: Citrus,
+    num: "07",
+  },
 ];
 
 function KumikoLine() {
@@ -61,7 +99,6 @@ export default function TopicPage() {
   return (
     <AuthGuard>
       <div className="max-w-3xl mx-auto px-4 py-8">
-
         {/* Header */}
         <motion.div {...fadeUp(0)} className="mb-10">
           <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-1">
@@ -80,10 +117,12 @@ export default function TopicPage() {
               <motion.div key={topic.slug} {...fadeUp(0.06 + idx * 0.07)}>
                 <Link href={`/dashboard/topics/${topic.slug}`}>
                   <div className="group flex items-center gap-5 p-5 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:border-stone-400 dark:hover:border-stone-500 transition-all duration-200 cursor-pointer">
-
                     {/* Icon box */}
                     <div className="w-11 h-11 rounded-xl border border-stone-200 dark:border-stone-700 flex items-center justify-center flex-shrink-0 group-hover:bg-stone-900 dark:group-hover:bg-stone-100 group-hover:border-stone-900 dark:group-hover:border-stone-100 transition-all duration-200">
-                      <Icon className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:text-white dark:group-hover:text-stone-900 transition-colors duration-200" strokeWidth={1.5} />
+                      <Icon
+                        className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:text-white dark:group-hover:text-stone-900 transition-colors duration-200"
+                        strokeWidth={1.5}
+                      />
                     </div>
 
                     {/* Text */}
@@ -121,10 +160,12 @@ export default function TopicPage() {
         <KumikoLine />
 
         {/* Footer note */}
-        <motion.p {...fadeUp(0.35)} className="text-center text-[11px] uppercase tracking-[2px] text-stone-300 dark:text-stone-600">
+        <motion.p
+          {...fadeUp(0.35)}
+          className="text-center text-[11px] uppercase tracking-[2px] text-stone-300 dark:text-stone-600"
+        >
           選んでください — Pick one to begin
         </motion.p>
-
       </div>
     </AuthGuard>
   );
