@@ -6,6 +6,7 @@ import { getWordsByUser } from "@/app/libs/firestore";
 import { Word } from "@/app/types/word";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+
 import {
   BookOpen,
   CheckCircle2,
@@ -356,6 +357,7 @@ export default function DashboardPage() {
         </motion.div>
 
       </div>
+
     </AuthGuard>
   );
 }

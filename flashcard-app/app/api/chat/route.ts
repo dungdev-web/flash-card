@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { messages, topic } = await req.json();
+  const { messages, topic, voiceMode = false } = await req.json();
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
@@ -15,6 +15,7 @@ Your personality:
 - Focus on teaching English vocabulary and helping users practice
 - Current topic context: "${topic ?? "general English"}"
 - Keep responses concise but meaningful (2-4 sentences)
+- If voiceMode is true: reply in 1-2 short spoken sentences only, no markdown, no bullet points
 - Occasionally suggest related words or example sentences
 - Use light Japanese cultural references naturally
 - Address the user respectfully, never be condescending
@@ -25,29 +26,26 @@ Your personality:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer":
-          process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
         "X-Title": "FlashCard App",
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: system }, ...messages],
+        messages: [
+          { role: "system", content: system },
+          ...messages,
+        ],
         temperature: 0.85,
         max_tokens: 400,
       }),
     });
 
-    const text = await res.text();
-    console.log("RAW:", text);
-
     if (!res.ok) {
-      return NextResponse.json({ error: text }, { status: 502 });
+      return NextResponse.json({ error: `OpenRouter ${res.status}` }, { status: 502 });
     }
 
-    const data = JSON.parse(text);
-
-    // const data = await res.json();
+    const data = await res.json();
     const reply = data.choices?.[0]?.message?.content ?? "";
     return NextResponse.json({ reply });
   } catch (err: any) {

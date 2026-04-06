@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/app/hooks/useAuth";
 import SakuraOverlay from "@/components/effects/SakuraOverlay";
-import SakuraChatbot from "@/components/effects/SakuraChatbot";
+// import SakuraChatbot from "@/components/effects/SakuraChatbot";
 
 export default function AuthenticatedExtras() {
   const { user, loading } = useAuth();
@@ -10,7 +10,6 @@ export default function AuthenticatedExtras() {
   return (
     <>
       <SakuraOverlay maxPetals={35} />
-      <SakuraChatbot />
     </>
   );
 }

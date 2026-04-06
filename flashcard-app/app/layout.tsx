@@ -2,7 +2,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ShojiProvider } from "@/components/providers/ShojiContext";
 import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
-import AuthenticatedExtras from "@/components/providers/AuthenticatedExtras";
+import RoleGatedFeatures from "@/components/effects/RoleGatedFeatures";
 
 export default function RootLayout({
   children,
@@ -16,7 +16,7 @@ export default function RootLayout({
           <ShojiProvider>
             <ConditionalNavbar />
             <main className="">{children}</main>
-             <AuthenticatedExtras />
+              <RoleGatedFeatures />
           </ShojiProvider>
         </ThemeProvider>
       </body>

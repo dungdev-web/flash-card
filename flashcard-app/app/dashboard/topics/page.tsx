@@ -38,7 +38,7 @@ const topics = [
   {
     name: "Business",
     labelJa: "仕事",
-    slug: "Business",
+    slug: "business",
     description: "Vocabulary for work and meetings",
     icon: Briefcase,
     num: "02",
@@ -46,7 +46,7 @@ const topics = [
   {
     name: "Technology",
     labelJa: "技術",
-    slug: "Technology",
+    slug: "technology",
     description: "Tech, IT, and software terms",
     icon: Monitor,
     num: "03",
@@ -54,7 +54,7 @@ const topics = [
   {
     name: "IELTS",
     labelJa: "試験",
-    slug: "Ielts",
+    slug: "ielts",
     description: "Academic & exam-focused vocabulary",
     icon: GraduationCap,
     num: "04",
