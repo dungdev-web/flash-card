@@ -106,7 +106,7 @@ export default function VoiceChat() {
   // Greet on first open
   useEffect(() => {
     if (open && turns.length === 0) {
-      const greeting = `こんにちは！ I'm Sakura. Let's practice ${topic} vocabulary together. Just speak to me!`;
+      const greeting = `こんにちは！ I'm Sakura. Let's practice ${topic}  together. Just speak to me!`;
       addTurn("assistant", greeting);
       if (!muted) speakText(greeting);
     }
@@ -279,7 +279,7 @@ export default function VoiceChat() {
       <motion.button
         onClick={() => setOpen(p => !p)}
         whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-        className="fixed bottom-[130px] right-6 z-[200] w-[52px] h-[52px] rounded-full border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex flex-col items-center justify-center shadow-lg"
+        className="fixed bottom-21.5 right-6 z-[200] w-[52px] h-[52px] rounded-full border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex flex-col items-center justify-center shadow-lg"
         aria-label="Voice chat"
       >
         <AnimatePresence mode="wait">

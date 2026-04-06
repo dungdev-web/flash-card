@@ -10,7 +10,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 // import { seedPresetWordsForUser } from "./seed-preset";
 
-export type UserRole = "admin" | "vip" | "user";
+export type UserRole = "admin" | "pro" | "user" | "master";
 
 export interface UserProfile {
   uid:       string;

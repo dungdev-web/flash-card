@@ -11,7 +11,11 @@ import { db } from "./firebase";
 import { Word } from "@/app/types/word";
 
 export const addWord = (word: Word) => addDoc(collection(db, "words"), word);
-
+export const getWordCount = async (userId: string): Promise<number> => {
+  const q = query(collection(db, "words"), where("userId", "==", userId));
+  const snap = await getDocs(q);
+  return snap.size;
+};
 export const getWordsByUser = async (userId: string) => {
   const q = query(collection(db, "words"), where("userId", "==", userId));
   const snap = await getDocs(q);

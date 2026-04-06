@@ -9,15 +9,19 @@ import { getUserRole, type UserRole } from "@/app/libs/auth";
 
 export function useRole() {
   const { user, loading: authLoading } = useAuth();
-  const [role,    setRole]    = useState<UserRole | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setRole(null); setLoading(false); return; }
+    if (!user) {
+      setRole(null);
+      setLoading(false);
+      return;
+    }
 
     getUserRole(user.uid)
-      .then(r => setRole(r))
+      .then((r) => setRole(r))
       .finally(() => setLoading(false));
   }, [user, authLoading]);
 
@@ -25,7 +29,9 @@ export function useRole() {
     role,
     loading,
     isAdmin: role === "admin",
-    isVip:   role === "vip" || role === "admin", // admin cũng có quyền vip
-    isUser:  role === "user",
+    isPro: role === "pro" || role === "master" || role === "admin",
+    isMaster: role === "master" || role === "admin",
+    isVip: role === "pro" || role === "master" || role === "admin", 
+    isUser: role === "user",
   };
 }

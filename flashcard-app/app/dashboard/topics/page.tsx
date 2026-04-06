@@ -11,9 +11,12 @@ import {
   Citrus,
   Utensils,
   Plane,
+  Crown,
 } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
-
+import { useRole } from "@/app/hooks/useRole";
+import { Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 const SHOJI_DELAY = 1.15;
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
@@ -96,6 +99,10 @@ function KumikoLine() {
 }
 
 export default function TopicPage() {
+  const { isVip, isAdmin } = useRole();
+  const isFree = !isVip && !isAdmin;
+  const FREE_TOPIC_LIMIT = 3;
+  const router = useRouter();
   return (
     <AuthGuard>
       <div className="max-w-3xl mx-auto px-4 py-8">
@@ -113,45 +120,80 @@ export default function TopicPage() {
         <div className="space-y-3">
           {topics.map((topic, idx) => {
             const Icon = topic.icon;
+            const locked = isFree && idx >= FREE_TOPIC_LIMIT;
+
             return (
               <motion.div key={topic.slug} {...fadeUp(0.06 + idx * 0.07)}>
-                <Link href={`/dashboard/topics/${topic.slug}`}>
-                  <div className="group flex items-center gap-5 p-5 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:border-stone-400 dark:hover:border-stone-500 transition-all duration-200 cursor-pointer">
-                    {/* Icon box */}
-                    <div className="w-11 h-11 rounded-xl border border-stone-200 dark:border-stone-700 flex items-center justify-center flex-shrink-0 group-hover:bg-stone-900 dark:group-hover:bg-stone-100 group-hover:border-stone-900 dark:group-hover:border-stone-100 transition-all duration-200">
+                <div
+                  onClick={() =>
+                    locked
+                      ? router.push("/upgrade")
+                      : router.push(`/dashboard/topics/${topic.slug}`)
+                  }
+                  className={`group flex items-center gap-5 p-5 rounded-2xl border transition-all duration-200 cursor-pointer
+          ${
+            locked
+              ? "border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 opacity-60 hover:opacity-80 hover:border-amber-200 dark:hover:border-amber-800"
+              : "border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:border-stone-400 dark:hover:border-stone-500"
+          }`}
+                >
+                  {/* Icon box */}
+                  <div
+                    className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 transition-all duration-200
+          ${
+            locked
+              ? "border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800"
+              : "border-stone-200 dark:border-stone-700 group-hover:bg-stone-900 dark:group-hover:bg-stone-100 group-hover:border-stone-900"
+          }`}
+                  >
+                    {locked ? (
+                      <Lock
+                        className="w-3.5 h-3.5 text-stone-300 dark:text-stone-600"
+                        strokeWidth={1.5}
+                      />
+                    ) : (
                       <Icon
                         className="w-4 h-4 text-stone-400 dark:text-stone-500 group-hover:text-white dark:group-hover:text-stone-900 transition-colors duration-200"
                         strokeWidth={1.5}
                       />
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Text */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 mb-0.5">
-                        <span className="text-base font-light text-stone-800 dark:text-stone-100">
-                          {topic.name}
-                        </span>
-                        <span className="text-[10px] text-stone-400 dark:text-stone-500 tracking-widest">
-                          {topic.labelJa}
-                        </span>
-                      </div>
-                      <p className="text-xs text-stone-400 dark:text-stone-500 font-light truncate">
-                        {topic.description}
-                      </p>
-                    </div>
-
-                    {/* Number + arrow */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-[11px] tabular-nums text-stone-300 dark:text-stone-600">
-                        {topic.num}
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <span className="text-base font-light text-stone-800 dark:text-stone-100">
+                        {topic.name}
                       </span>
-                      <ArrowRight
-                        className="w-4 h-4 text-stone-300 dark:text-stone-600 group-hover:text-stone-700 dark:group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all duration-200"
+                      <span className="text-[10px] text-stone-400 dark:text-stone-500 tracking-widest">
+                        {topic.labelJa}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-400 dark:text-stone-500 font-light truncate">
+                      {locked
+                        ? "Upgrade to unlock this topic"
+                        : topic.description}
+                    </p>
+                  </div>
+
+                  {/* Number + icon */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-[11px] tabular-nums text-stone-300 dark:text-stone-600">
+                      {topic.num}
+                    </span>
+                    {locked ? (
+                      <Crown
+                        className="w-3.5 h-3.5 text-amber-400"
                         strokeWidth={1.5}
                       />
-                    </div>
+                    ) : (
+                      <ArrowRight
+                        className="w-4 h-4 text-stone-300 dark:text-stone-600 group-hover:text-stone-700 group-hover:translate-x-0.5 transition-all duration-200"
+                        strokeWidth={1.5}
+                      />
+                    )}
                   </div>
-                </Link>
+                </div>
               </motion.div>
             );
           })}

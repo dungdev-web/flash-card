@@ -21,7 +21,7 @@ export function SeedButton() {
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-[300]">
+    <div className="fixed bottom-24 lèft-6 z-[300]">
       {state === "done" && result && (
         <div className="mb-2 px-4 py-2.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-xs text-stone-600 dark:text-stone-400 text-right">
           <p className="font-medium text-stone-800 dark:text-stone-100">Seed complete</p>

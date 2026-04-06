@@ -20,7 +20,8 @@ const fadeUp = (d = 0) => ({
 
 const ROLE_META: Record<UserRole, { label: string; color: string; icon: React.ElementType }> = {
   admin: { label: "Admin",  color: "bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400",    icon: Shield },
-  vip:   { label: "VIP",   color: "bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400", icon: Crown },
+  pro:   { label: "Pro",   color: "bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400", icon: Crown },
+  master:{ label: "Master",color: "bg-amber-200 dark:bg-amber-950/50 text-amber-700 dark:text-amber-500", icon: Crown },
   user:  { label: "User",  color: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400",  icon: User },
 };
 
@@ -184,7 +185,7 @@ export default function AdminPage() {
               const Icon = meta.icon;
               const perms = r === "admin"
                 ? ["All VIP features", "Admin panel", "Role management"]
-                : r === "vip"
+                : r === "pro" || r === "master"
                 ? ["Sakura AI chatbot", "Voice conversation", "Unlimited words"]
                 : ["Flashcards", "Add words", "Topics"];
               return (

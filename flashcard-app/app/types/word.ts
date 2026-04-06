@@ -21,5 +21,5 @@ export interface WordInput {
   phonetic?: string;
   audioUrl?: string;
   partOfSpeech?: string;
-  isPreset: boolean; // ⭐ từ vựng hệ thống
+  isPreset: boolean; 
 }
