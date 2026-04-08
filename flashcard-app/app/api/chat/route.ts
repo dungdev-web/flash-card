@@ -31,7 +31,7 @@ Your personality:
         "X-Title": "FlashCard App",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "nvidia/nemotron-3-super-120b-a12b:free",
         messages: [
           { role: "system", content: system },
           ...messages,
@@ -41,8 +41,13 @@ Your personality:
       }),
     });
 
-    if (!res.ok) {
-      return NextResponse.json({ error: `OpenRouter ${res.status}` }, { status: 502 });
+     if (!res.ok) {
+      const errBody = await res.text(); // ← thêm dòng này
+      console.error("OpenRouter error:", res.status, errBody);
+      return NextResponse.json(
+        { error: `OpenRouter ${res.status}`, detail: errBody },
+        { status: 502 },
+      );
     }
 
     const data = await res.json();
