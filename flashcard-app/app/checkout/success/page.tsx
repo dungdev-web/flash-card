@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -114,9 +114,7 @@ function SakuraCanvas() {
     />
   );
 }
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const params = useSearchParams();
   const { user } = useAuth();
 
@@ -380,4 +378,16 @@ export default function CheckoutSuccessPage() {
       </div>
     </AuthGuard>
   );
+}
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function CheckoutSuccessPage() {
+  <Suspense
+    fallback={
+      <div className="min-h-screen bg-[#fdf9f6] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+      </div>
+    }
+  >
+    <CheckoutSuccessContent />
+  </Suspense>;
 }
