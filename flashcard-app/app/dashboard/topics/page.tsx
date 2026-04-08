@@ -105,7 +105,7 @@ export default function TopicPage() {
   const router = useRouter();
   return (
     <AuthGuard>
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <motion.div {...fadeUp(0)} className="mb-10">
           <p className="text-[11px] uppercase tracking-[3px] text-stone-400 dark:text-stone-500 mb-1">

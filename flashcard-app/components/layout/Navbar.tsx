@@ -298,7 +298,7 @@ export default function Navbar() {
           transition={{ duration: 0.9, delay: 0.25 }}
         />
 
-        <div className="flex items-center justify-between px-5 py-3.5 max-w-5xl mx-auto">
+        <div className="flex items-center justify-between px-3 py-3.5 max-w-5xl mx-auto">
           <button
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"

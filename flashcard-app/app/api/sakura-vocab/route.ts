@@ -21,12 +21,13 @@ Words should be intermediate to advanced, varied and interesting.`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer":
+          process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
         "X-Title": "FlashCard App",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "nvidia/nemotron-3-super-120b-a12b:free",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.9,
         max_tokens: 800,
@@ -34,7 +35,12 @@ Words should be intermediate to advanced, varied and interesting.`;
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: `OpenRouter ${res.status}` }, { status: 502 });
+      const errBody = await res.text(); // ← thêm dòng này
+      console.error("OpenRouter error:", res.status, errBody);
+      return NextResponse.json(
+        { error: `OpenRouter ${res.status}`, detail: errBody },
+        { status: 502 },
+      );
     }
 
     const data = await res.json();

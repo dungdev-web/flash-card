@@ -58,8 +58,25 @@ export const logout = () => signOut(auth);
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 export async function getUserRole(uid: string): Promise<UserRole> {
-  const snap = await getDoc(doc(db, "users", uid));
-  return (snap.data()?.role as UserRole) ?? "user";
+  try {
+    const currentUser = auth.currentUser;
+
+    if (currentUser && currentUser.uid === uid) {
+      // 1. Ép làm mới token để lấy Custom Claims (role)
+      const idTokenResult = await currentUser.getIdTokenResult(true);
+      const roleFromClaim = idTokenResult.claims.role as UserRole;
+      
+      if (roleFromClaim) return roleFromClaim;
+    }
+
+    // 2. Fallback: Nếu không thấy claim hoặc không phải user hiện tại, đọc Firestore
+    const snap = await getDoc(doc(db, "users", uid));
+    return (snap.data()?.role as UserRole) ?? "user";
+    
+  } catch (error) {
+    console.error("Error in getUserRole:", error);
+    return "user";
+  }
 }
 
 export async function setUserRole(uid: string, role: UserRole): Promise<void> {

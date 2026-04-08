@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useAuth } from "@/app/hooks/useAuth";
-import { addWord } from "@/app/libs/firestore";
+import {
+  addWord,
+  getWordCount,
+  getExampleGenCount,
+  incrementExampleGenCount,
+} from "@/app/libs/firestore";
 import { useRouter } from "next/navigation";
 import { useRole } from "@/app/hooks/useRole";
-import { getWordCount } from "@/app/libs/firestore";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
@@ -424,11 +428,24 @@ export default function AddWordPage() {
   const [selectedPart, setSelectedPart] = useState(0);
   const [wordType, setWordType] = useState<"word" | "phrase">("word");
   const { isPro, isMaster, isUser, isAdmin } = useRole();
+  const [exampleGenCount, setExampleGenCount] = useState<number>(0);
+
+  // THÊM — limit theo plan, reset mỗi ngày tự động vì Firestore key theo date
   const isFree = !isPro && !isAdmin && !isMaster;
+  const EXAMPLE_GEN_LIMIT = isFree ? 5 : isMaster ? Infinity : isPro ? 20 : 5;
   const WORD_LIMIT = isUser ? 50 : isPro ? 500 : Infinity;
 
   const [wordCount, setWordCount] = useState<number | null>(null);
-
+  // THÊM — fetch số lần đã generate hôm nay
+ useEffect(() => {
+  if (!user) return;
+  getExampleGenCount(user.uid)
+    .then(setExampleGenCount)
+    .catch((err) => {
+      console.warn("Could not fetch example gen count:", err);
+      // KHÔNG set về 0, giữ nguyên state hiện tại
+    });
+}, [user]);
   useEffect(() => {
     if (!user || !isFree) return;
     getWordCount(user.uid).then(setWordCount);
@@ -494,27 +511,56 @@ export default function AddWordPage() {
   const currentDefinition =
     availableParts[selectedPart]?.definitions[0]?.definition || "";
 
-  const generateExample = async () => {
-    if (!english || !meaning) return;
-    setLoadingExample(true);
-    try {
-      const r = await fetch("/api/generate-example", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          word: english,
-          meaning: currentDefinition || meaning,
-          partOfSpeech: currentPartOfSpeech,
-          topic,
-        }),
-      });
-      setExample((await r.json()).example || "");
-    } catch {
-      setExample("");
-    } finally {
-      setLoadingExample(false);
+  // SỬA — thay toàn bộ hàm generateExample hiện tại
+  // SAU - fix: tách incrementExampleGenCount ra khỏi try chính
+const generateExample = async () => {
+  if (!english || !meaning) return;
+
+  if (exampleGenCount >= EXAMPLE_GEN_LIMIT) {
+    const limitMsg = isFree
+      ? "Daily limit reached (5/day). Upgrade to Pro for 20/day."
+      : "Daily limit reached (20/day).";
+    setError(limitMsg);
+    setTimeout(() => setError(""), 4000);
+    return;
+  }
+
+  setLoadingExample(true);
+  try {
+    const r = await fetch("/api/generate-example", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        word: english,
+        meaning: currentDefinition || meaning,
+        partOfSpeech: currentPartOfSpeech,
+        topic,
+      }),
+    });
+
+    const data = await r.json();
+    const generatedExample = data.example || "";
+
+    if (generatedExample) {
+      setExample(generatedExample);  // ✅ set trước
     }
-  };
+  } catch (err) {
+    console.error("Generate example failed:", err);
+    // KHÔNG setExample("") ở đây
+  } finally {
+    setLoadingExample(false);
+  }
+
+  // Increment counter RIÊNG — lỗi Firestore không ảnh hưởng UI
+  try {
+    const newCount = await incrementExampleGenCount(user!.uid);
+    setExampleGenCount(newCount);
+  } catch (err) {
+    console.warn("Could not increment example gen count:", err);
+    // Vẫn tăng local để UX đúng dù Firestore lỗi
+    setExampleGenCount((c) => c + 1);
+  }
+};
 
   const handleSubmit = async () => {
     // Giới hạn free user
@@ -556,7 +602,7 @@ export default function AddWordPage() {
 
   return (
     <AuthGuard>
-      <div className="h-[calc(100vh-57px)] flex flex-col px-6 py-5 max-w-6xl mx-auto overflow-hidden">
+      <div className="h-[calc(100vh-57px)] flex flex-col px-6 py-5 max-w-5xl mx-auto overflow-hidden">
         {/* Header */}
         <motion.div
           {...fadeUp(0)}
@@ -739,21 +785,43 @@ export default function AddWordPage() {
               <Label
                 icon={FileText}
                 aside={
-                  <button
-                    onClick={generateExample}
-                    disabled={!english || !meaning || loadingExample}
-                    className="flex items-center gap-1 text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-colors"
-                  >
-                    {loadingExample ? (
-                      <Loader2
-                        className="w-2.5 h-2.5 animate-spin"
-                        strokeWidth={1.5}
-                      />
-                    ) : (
-                      <Wand2 className="w-2.5 h-2.5" strokeWidth={1.5} />
+                  <div className="flex items-center gap-2">
+                    {/* Hiển thị counter: free và pro thấy, master không thấy */}
+                    {!isMaster && (
+                      <span
+                        className={`text-[10px] tabular-nums ${
+                          exampleGenCount >= EXAMPLE_GEN_LIMIT
+                            ? "text-red-400"
+                            : exampleGenCount >= EXAMPLE_GEN_LIMIT * 0.8
+                              ? "text-amber-500"
+                              : "text-stone-400 dark:text-stone-500"
+                        }`}
+                      >
+                        {EXAMPLE_GEN_LIMIT - exampleGenCount}/
+                        {EXAMPLE_GEN_LIMIT} left
+                      </span>
                     )}
-                    {loadingExample ? "Generating..." : "AI Generate"}
-                  </button>
+                    <button
+                      onClick={generateExample}
+                      disabled={
+                        !english ||
+                        !meaning ||
+                        loadingExample ||
+                        exampleGenCount >= EXAMPLE_GEN_LIMIT
+                      }
+                      className="flex items-center gap-1 text-[10px] uppercase tracking-[1.5px] text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 disabled:opacity-30 transition-colors"
+                    >
+                      {loadingExample ? (
+                        <Loader2
+                          className="w-2.5 h-2.5 animate-spin"
+                          strokeWidth={1.5}
+                        />
+                      ) : (
+                        <Wand2 className="w-2.5 h-2.5" strokeWidth={1.5} />
+                      )}
+                      {loadingExample ? "Generating..." : "AI Generate"}
+                    </button>
+                  </div>
                 }
               >
                 Example Sentence

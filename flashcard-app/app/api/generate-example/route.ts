@@ -1,103 +1,116 @@
 import { NextResponse, NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Models confirmed working April 2026 - ordered by reliability
+const MODELS = [
+  "google/gemma-3-27b-it:free",
+  "google/gemma-3-12b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "microsoft/phi-4-reasoning-plus:free",
+  "openrouter/free", // auto-router last resort
+  "google/gemma-4-26b-a4b-it"
+
+];
 
 export async function POST(req: NextRequest) {
   try {
     const { word, meaning, topic, partOfSpeech } = await req.json();
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-    });
-
-    // 🆕 Xác định loại (word hoặc phrase)
     const isPhrase = word.trim().includes(" ");
     const wordType = isPhrase ? "phrase" : "word";
 
-    // 🆕 Tạo prompt động dựa trên part of speech
     const getPromptGuidance = () => {
       if (isPhrase) {
         return `- Use the entire phrase "${word}" naturally in the sentence
-- The phrase should function as a complete unit in the context
 - Common phrase types: idiom, phrasal verb, collocation, expression`;
       }
-
-      // Guidance cho từng loại từ
       switch (partOfSpeech?.toLowerCase()) {
-        case "noun":
-          return `- Use "${word}" as a NOUN (subject, object, or complement)
-- Example structures: "The ${word} is...", "I see a ${word}", "This ${word}..."`;
-
-        case "verb":
-          return `- Use "${word}" as a VERB (action or state)
-- Example structures: "I ${word}...", "She ${word}s...", "They ${word}ed..."`;
-
-        case "adjective":
-          return `- Use "${word}" as an ADJECTIVE (describing a noun)
-- Example structures: "The ${word} thing...", "A ${word} person...", "It looks ${word}"`;
-
-        case "adverb":
-          return `- Use "${word}" as an ADVERB (modifying verb, adjective, or sentence)
-- Example structures: "He speaks ${word}", "She runs ${word}", "${word}, I agree"`;
-
-        case "pronoun":
-          return `- Use "${word}" as a PRONOUN (replacing a noun)
-- Example structures: "${word} is...", "I saw ${word}", "Give it to ${word}"`;
-
-        case "preposition":
-          return `- Use "${word}" as a PREPOSITION (showing relationship)
-- Example structures: "...${word} the table", "...${word} London", "...${word} 5 PM"`;
-
-        case "conjunction":
-          return `- Use "${word}" as a CONJUNCTION (connecting words/clauses)
-- Example structures: "I like coffee ${word} tea", "She studied hard ${word} passed"`;
-
-        case "interjection":
-          return `- Use "${word}" as an INTERJECTION (exclamation)
-- Example structures: "${word}! That's amazing", "${word}, I didn't know that"`;
-
-        default:
-          return `- Use "${word}" naturally in a sentence
-- Make sure the word fits the meaning: ${meaning}`;
+        case "noun":     return `- Use "${word}" as a NOUN (subject, object, or complement)`;
+        case "verb":     return `- Use "${word}" as a VERB (action or state)`;
+        case "adjective":return `- Use "${word}" as an ADJECTIVE (describing a noun)`;
+        case "adverb":   return `- Use "${word}" as an ADVERB (modifying verb or adjective)`;
+        case "preposition": return `- Use "${word}" as a PREPOSITION`;
+        case "conjunction": return `- Use "${word}" as a CONJUNCTION`;
+        case "interjection": return `- Use "${word}" as an INTERJECTION`;
+        default: return `- Use "${word}" naturally. Meaning: ${meaning}`;
       }
     };
 
-    const prompt = `
-Create ONE simple, natural English sentence using the ${wordType} "${word}".
+    // Random elements to force variety
+    const subjects   = ["I", "She", "He", "We", "My friend", "The teacher", "A stranger", "My sister", "People"];
+    const timeFrames = ["yesterday", "this morning", "last night", "every day", "once", "recently", "just now"];
+    const randomSubject   = subjects[Math.floor(Math.random() * subjects.length)];
+    const randomTime      = timeFrames[Math.floor(Math.random() * timeFrames.length)];
+    const randomNum       = Math.floor(Math.random() * 9000) + 1000;
 
-Word/Phrase: "${word}"
-Type: ${partOfSpeech || (isPhrase ? "phrase" : "word")}
-Meaning: ${meaning}
-Context/Topic: ${topic}
+    const prompt = `[${randomNum}] Write exactly ONE English sentence about "${word}" from the perspective of "${randomSubject}", set "${randomTime}", topic: ${topic}.
 
-Requirements:
 ${getPromptGuidance()}
--One sentence only, no quotation marks, no explanations, 1000 letters.
--Style: Simple, conversational English (A2-C1 level), natural native usage.
--Context: ${topic}.
--Format: Return the English sentence first, followed immediately by its full Vietnamese translation in parentheses.
--Example: I love reading books in my free time (Tôi thích đọc sách vào thời gian rảnh).
-`;
+- Be creative and specific — avoid clichés like "My ${word} likes to sleep on the sofa"
+- Vary sentence structure, tense, and setting
+- Level: A2–C1 natural English
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+Respond with ONLY: English sentence (Vietnamese translation in parentheses)
+Example format: She found a stray cat near the market yesterday (Cô ấy tìm thấy một con mèo hoang gần chợ hôm qua).`;
 
-    console.log("🧠 Gemini raw:", text);
-    console.log("📝 Input context:", { word, partOfSpeech, topic, isPhrase });
+    let responseData: any = null;
+    let usedModel = "";
 
-    // 🆕 Clean up response (remove quotes, extra whitespace, explanations)
-    let cleanedExample = text
-      ?.trim()
-      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
-      .split("\n")[0] // Get only first line (alternative to /\n.*$/s)
+    for (const model of MODELS) {
+      let res: Response;
+      try {
+        res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY2}`,
+            "X-Title": "Vocab App",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 200,
+            temperature: 1.3,
+            top_p: 0.9,
+            // Disable caching
+            transforms: [],
+          }),
+        });
+      } catch (fetchErr) {
+        console.warn(`⚠️ Fetch error ${model}:`, fetchErr);
+        continue;
+      }
+
+      if (res.ok) {
+        responseData = await res.json();
+        usedModel = model;
+        break;
+      }
+
+      const status = res.status;
+      const errText = await res.text();
+      console.warn(`⚠️ ${model} → ${status}:`, errText);
+      if (status !== 429 && status !== 404) break;
+    }
+
+    if (!responseData) {
+      console.error("❌ All models exhausted");
+      return NextResponse.json({ example: "" }, { status: 500 });
+    }
+
+    const text = responseData.choices?.[0]?.message?.content ?? "";
+    console.log(`✅ [${usedModel}] raw:`, text);
+    console.log("📝 Input:", { word, partOfSpeech, topic, randomSubject, randomTime });
+
+    const cleanedExample = text
+      .trim()
+      .replace(/^\[?\d+\]?\s*/, "")   // remove leading [seed]
+      .replace(/^["']|["']$/g, "")    // remove surrounding quotes
+      .split("\n")[0]
       .trim();
 
-    return NextResponse.json({
-      example: cleanedExample || "",
-    });
+    return NextResponse.json({ example: cleanedExample || "" });
   } catch (error) {
-    console.error("❌ Gemini error:", error);
+    console.error("❌ Unexpected error:", error);
     return NextResponse.json({ example: "" }, { status: 500 });
   }
 }

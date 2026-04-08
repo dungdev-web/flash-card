@@ -1,5 +1,4 @@
 // src/app/dashboard/admin/page.tsx
-// Trang quản lý role — chỉ admin truy cập được
 "use client";
 
 import { useRole } from "@/app/hooks/useRole";
@@ -8,9 +7,8 @@ import { setUserRole, type UserRole } from "@/app/libs/auth";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, User, Shield, Loader2, Check, Search } from "lucide-react";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "@/app/libs/firebase";
 import AuthGuard from "@/components/auth/AuthGuard";
+import ResetUsageButton from "@/components/admin/ResetUsageButton"; // ← THÊM
 
 const SHOJI_DELAY = 1.15;
 const fadeUp = (d = 0) => ({
@@ -19,10 +17,10 @@ const fadeUp = (d = 0) => ({
 });
 
 const ROLE_META: Record<UserRole, { label: string; color: string; icon: React.ElementType }> = {
-  admin: { label: "Admin",  color: "bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400",    icon: Shield },
-  pro:   { label: "Pro",   color: "bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400", icon: Crown },
-  master:{ label: "Master",color: "bg-amber-200 dark:bg-amber-950/50 text-amber-700 dark:text-amber-500", icon: Crown },
-  user:  { label: "User",  color: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400",  icon: User },
+  admin:  { label: "Admin",  color: "bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400",         icon: Shield },
+  pro:    { label: "Pro",    color: "bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400",  icon: Crown  },
+  master: { label: "Master", color: "bg-amber-200 dark:bg-amber-950/50 text-amber-700 dark:text-amber-500", icon: Crown  },
+  user:   { label: "User",   color: "bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400",    icon: User   },
 };
 
 interface UserEntry {
@@ -30,14 +28,14 @@ interface UserEntry {
 }
 
 export default function AdminPage() {
+  const { user } = useAuth();
   const { isAdmin, loading: roleLoading } = useRole();
-
-  const [email,    setEmail]    = useState("");
-  const [result,   setResult]   = useState<UserEntry | null>(null);
+  const [email,     setEmail]     = useState("");
+  const [result,    setResult]    = useState<UserEntry | null>(null);
   const [searching, setSearching] = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
-  const [error,    setError]    = useState("");
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [error,     setError]     = useState("");
 
   if (roleLoading) return (
     <div className="flex items-center justify-center min-h-[400px]">
@@ -56,26 +54,33 @@ export default function AdminPage() {
     if (!email.trim()) return;
     setSearching(true); setResult(null); setError("");
     try {
-      const q    = query(collection(db, "users"), where("email", "==", email.trim()));
-      const snap = await getDocs(q);
-      if (snap.empty) { setError(`No user found: ${email}`); }
-      else {
-        const d = snap.docs[0].data() as UserEntry;
-        setResult({ uid: d.uid, email: d.email, role: d.role ?? "user" });
-      }
-    } catch { setError("Search failed"); }
+      const idToken = await user!.getIdToken();
+      const res = await fetch("/api/admin/search-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, idToken }),
+      });
+      if (!res.ok) throw new Error();
+      setResult(await res.json());
+    } catch { setError(`No user found: ${email}`); }
     finally { setSearching(false); }
   };
 
   const updateRole = async (role: UserRole) => {
-    if (!result) return;
-    setSaving(true);
+    if (!result || !user) return;
+    setSaving(true); setError("");
     try {
-      await setUserRole(result.uid, role);
+      const idToken = await user.getIdToken();
+      const res = await fetch("/api/admin/update-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: result.uid, role, idToken }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
       setResult(prev => prev ? { ...prev, role } : null);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { setError("Update failed"); }
+    } catch { setError("Update failed. Please try again."); }
     finally { setSaving(false); }
   };
 
@@ -124,21 +129,28 @@ export default function AdminPage() {
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-5">
 
-              {/* User info */}
+              {/* User info + Reset button */}
               <div className="flex items-center justify-between mb-4 pb-4 border-b border-stone-100 dark:border-stone-800">
                 <div>
                   <p className="text-sm font-light text-stone-800 dark:text-stone-100">{result.email}</p>
                   <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-0.5 font-mono">{result.uid.slice(0, 16)}...</p>
                 </div>
-                {(() => {
-                  const { label, color, icon: Icon } = ROLE_META[result.role];
-                  return (
-                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs ${color}`}>
-                      <Icon className="w-3 h-3" strokeWidth={1.5} />
-                      {label}
-                    </div>
-                  );
-                })()}
+                <div className="flex items-center gap-2">
+                  {/* ── RESET USAGE BUTTON ── */}
+                  <ResetUsageButton
+                    userId={result.uid}
+                    userName={result.email}
+                  />
+                  {(() => {
+                    const { label, color, icon: Icon } = ROLE_META[result.role];
+                    return (
+                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs ${color}`}>
+                        <Icon className="w-3 h-3" strokeWidth={1.5} />
+                        {label}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
 
               {/* Role buttons */}
