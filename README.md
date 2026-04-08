@@ -85,7 +85,3 @@ flash-card/
 
 ---
 
-
-## License
-
-[MIT](LICENSE)
