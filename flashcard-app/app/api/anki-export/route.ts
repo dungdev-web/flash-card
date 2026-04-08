@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       compressionOptions: { level: 6 },
     });
 
-    return new NextResponse(apkg, {
+return new NextResponse(new Uint8Array(apkg), {
       headers: {
         "Content-Type": "application/octet-stream",
         "Content-Disposition": `attachment; filename="sakura_anki.apkg"`,
