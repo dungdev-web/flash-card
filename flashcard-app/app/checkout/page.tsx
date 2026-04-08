@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Flower2,
@@ -242,9 +242,7 @@ function VNPayInfo() {
     </div>
   );
 }
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get("status");
   const errorCode = searchParams.get("code");
@@ -289,10 +287,7 @@ export default function CheckoutPage() {
   // console.log({ baseVnd, discountVnd, priceVnd, vatVnd, totalVnd });
   // ── Disabled state ──
   const isDisabled =
-    loading ||
-    plan === "free" ||
-    isMaster ||
-    (isPro && plan === "pro");
+    loading || plan === "free" || isMaster || (isPro && plan === "pro");
 
   // ── CTA label ──
   const ctaLabel = () => {
@@ -674,5 +669,19 @@ export default function CheckoutPage() {
         </div>
       </div>
     </AuthGuard>
+  );
+}
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#fdf9f6] flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }
